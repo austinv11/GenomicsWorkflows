@@ -1,0 +1,128 @@
+"""
+Snakemake workflow for scRNA-seq analysis incorporating shortread preprocessing.
+
+This workflow combines short read processing with downstream scRNA-seq analysis.
+"""
+
+# Set default config values if not provided
+config.setdefault("fastq_dir","raw_data")
+config.setdefault("results_dir","results")
+config.setdefault("low_complexity_filter",True)
+
+# Single-cell specific config values
+config.setdefault("mode", 'three-prime')  # Either three-prime or flex
+config.setdefault("organism", 'human')  # Either human or mouse
+config.setdefault("cellranger_output", "cellranger_out")  # Cellranger output directory
+
+# Import shortread workflow
+include: "../rules/shortread.smk"
+
+# Import required functions
+from pathlib import Path
+import glob
+
+# Wildcard constraints
+wildcard_constraints:
+    sample="[^/]+",
+    read="[12]"
+
+# Ensure shortread processing is completed first
+rule all:
+    input:
+        # First ensure shortread processing is complete
+        expand(
+            "{results}/fastp/{sample}_R{read}.fastq.gz",
+            results=config["results_dir"],
+            sample=get_samples(),
+            read=[1, 2]
+        )
+
+def get_reference_file():
+    if config['organism'] == 'human':
+        return "/ref/cellranger/refdata-gex-GRCh38-2024-A.tar.gz"
+    elif config['organism'] == 'mouse':
+        return "/ref/cellranger/refdata-gex-GRCh38-2024-A.tar.gz"
+    else:
+        raise ValueError("Invalid mode specified. Must be either 'three-prime' or 'flex'.")
+
+
+def get_flex_probeset():
+    if config['organism'] == 'human':
+        return "/ref/cellranger/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv"
+    elif config['organism'] == 'mouse':
+        return "/ref/cellranger/Chromium_Mouse_Transcriptome_Probe_Set_v1.1.1_GRCm39-2024-A.csv"
+    else:
+        raise ValueError("Invalid organism specified. Must be either 'human' or 'mouse'.")
+
+# Check if three-prime
+if config['mode'] == 'three-prime':
+    rule cellranger:
+        container: 'docker://austinv11/10xrangers:latest'
+        input:
+            fastq_dir=config["fastq_dir"]
+        output:
+            results_dir=config["cellranger_output"]
+        params:
+            reference = get_reference_file()
+        threads: 16
+        shell:
+            """
+            cellranger count \
+            --id {wildcards.sample} \
+            --output-dir {output.results_dir} \
+            --transcriptome {params.reference} \
+            --fastqs {input.fastq_dir} \
+            --sample {wildcards.sample} \
+            --create-bam \
+            --localcores {threads}
+            """
+elif config['mode'] == 'flex':
+    rule generate_multi_csv:  # Create the csv file input for the cellranger multi command
+        input:
+            fastq_dir=config["fastq_dir"]
+        output:
+            multi_csv_input="multi_csv_input.csv"
+        params:
+            reference = get_reference_file(),
+            probeset = get_flex_probeset()
+        run:
+            with open(output, 'w') as f:
+                f.writelines([
+                    "[gene-expression]",
+                    f"reference,{params.reference}",
+                    "create-bam,true"
+                    f"probe-set,{params.probeset}",
+                    "[libraries]",
+                    f"fastq-id,{wildcards.sample}",
+                    f"fastqs,{input.fastq_dir}",
+                    "feature_types,Gene Expression"
+                ])
+    rule cellranger:
+        container: 'docker://austinv11/10xrangers:latest'
+        input:
+            fastq_dir=config["fastq_dir"],
+            multi_csv_input="multi_csv_input.csv"
+        output:
+            cellranger_output=config["cellranger_output"]
+        threads: 16
+        shell:
+            """
+            cellranger multi \
+            --id {wildcards.sample} \
+            --csv {input.multi_csv_input} \
+            --output-dir {output.cellranger_output} \
+            --localcores {threads}
+            """
+else:
+    raise ValueError("Invalid mode specified. Must be either 'three-prime' or 'flex'.")
+
+# Finally, run MultiQC to collect fastp and cellranger output
+rule multiqc:
+    container: 'docker://austinv11/multiqc:latest'
+    input:
+        tenx_output=config["cellranger_output"],
+        fastp_output=expand("{results}/fastp/{sample}_R{read}.fastq.gz", results=config["results_dir"], sample=get_samples(), read=[1, 2])
+    output:
+        "multiqc_report.html"
+    shell:
+        "multiqc ."
