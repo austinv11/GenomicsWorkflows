@@ -10,5 +10,5 @@ else # biohpc
 fi
 
 $docker_exec build -t 10xrangers "$(pwd)/10xrangers/"
-$docker_exec build -t multiqc "$(pwd)multiqc/"
-$docker_exec build -t samtools "$(pwd)samtools/"
+$docker_exec build -t multiqc "$(pwd)/multiqc/"
+$docker_exec build -t samtools "$(pwd)/samtools/"
