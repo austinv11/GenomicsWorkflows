@@ -21,9 +21,9 @@ import glob
 
 # Config for input/output directories
 config.setdefault("registry", "biohpc_aav4003")
-config["fastq_dir"] = "raw_data"
-config["results_dir"] = "results"
-config["low_complexity_filter"] = True
+config.setdefault("fastq_dir", "raw_data")
+config.setdefault("results_dir", "results")
+config.setdefault("low_complexity_filter", True)
 
 # Get sample names from fastq files
 def get_samples():
@@ -41,14 +41,14 @@ def get_fastq_r2(wildcards):
 
 
 # Pipeline rules
-rule all:
-    input:
-        expand(
-            "{results}/fastp/{sample}_R{read}.fastq.gz",
-            results=config["results_dir"],
-            sample=get_samples(),
-            read=[1, 2]
-        )
+# rule all:
+#     input:
+#         expand(
+#             "{results}/fastp/{sample}_R{read}.fastq.gz",
+#             results=config["results_dir"],
+#             sample=get_samples(),
+#             read=[1, 2]
+#         )
 
 rule ensure_gzipped:
     input:

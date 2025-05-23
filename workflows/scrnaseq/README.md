@@ -3,7 +3,9 @@ A basic end-to-end pipeline for mapping paired-end short reads with 10X Cellrang
 sequencing.
 
 ```bash
-snakemake Snakefile \
-  --config \
-    ...
+snakemake \
+  --snakefile GenomicsWorkflows/workflows/scrnaseq/Snakefile \
+  --cores 16 --max-threads 16 \
+  --configfile config.yaml \
+  --software-deployment-method apptainer
 ```

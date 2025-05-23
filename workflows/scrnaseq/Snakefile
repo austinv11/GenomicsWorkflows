@@ -27,16 +27,15 @@ wildcard_constraints:
     sample="[^/]+",
     read="[12]"
 
+
+def get_samples():
+    fastqs = glob.glob(f"{config['fastq_dir']}/*_R1_*.f*q*")
+    return list(set([Path(f).name.split("_R1_")[0] for f in fastqs]))
+
 # Ensure shortread processing is completed first
 rule all:
     input:
-        # First ensure shortread processing is complete
-        expand(
-            "{results}/fastp/{sample}_R{read}.fastq.gz",
-            results=config["results_dir"],
-            sample=get_samples(),
-            read=[1, 2]
-        )
+        "multiqc_report.html"
 
 def get_reference_file():
     if config['organism'] == 'human':
@@ -55,27 +54,31 @@ def get_flex_probeset():
     else:
         raise ValueError("Invalid organism specified. Must be either 'human' or 'mouse'.")
 
-# Check if three-prime
 if config['mode'] == 'three-prime':
+    # For the three-prime mode
     rule cellranger:
         container: f"docker://${config['registry']}/10xrangers:latest"
         input:
             fastq_dir=config["fastq_dir"]
         output:
-            results_dir=config["cellranger_output"]
+            results_dir=directory(expand("{outdir}/{sample}",
+                                outdir=config["cellranger_output"],
+                                sample=get_samples()))
         params:
             reference = get_reference_file()
         threads: 16
         shell:
             """
-            cellranger count \
-            --id {wildcards.sample} \
-            --output-dir {output.results_dir} \
-            --transcriptome {params.reference} \
-            --fastqs {input.fastq_dir} \
-            --sample {wildcards.sample} \
-            --create-bam \
-            --localcores {threads}
+            for sample in {get_samples()}; do
+                cellranger count \
+                --id $sample \
+                --output-dir {output.results_dir}/$sample \
+                --transcriptome {params.reference} \
+                --fastqs {input.fastq_dir} \
+                --sample $sample \
+                --create-bam \
+                --localcores {threads}
+            done
             """
 elif config['mode'] == 'flex':
     rule generate_multi_csv:  # Create the csv file input for the cellranger multi command
@@ -99,7 +102,7 @@ elif config['mode'] == 'flex':
                     "feature_types,Gene Expression"
                 ])
     rule cellranger:
-        container: f"docker://${config['registry']}/10xrangers:latest'
+        container: f"docker://${config['registry']}/10xrangers:latest"
         input:
             fastq_dir=config["fastq_dir"],
             multi_csv_input="multi_csv_input.csv"
@@ -119,7 +122,7 @@ else:
 
 # Finally, run MultiQC to collect fastp and cellranger output
 rule multiqc:
-    container: 'docker://austinv11/multiqc:latest'
+    container: f"docker://${config['registry']}/multiqc:latest"
     input:
         tenx_output=config["cellranger_output"],
         fastp_output=expand("{results}/fastp/{sample}_R{read}.fastq.gz", results=config["results_dir"], sample=get_samples(), read=[1, 2])
