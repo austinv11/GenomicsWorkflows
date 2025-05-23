@@ -5,6 +5,7 @@ This workflow combines short read processing with downstream scRNA-seq analysis.
 """
 
 # Set default config values if not provided
+config.setdefault("registry", "biohpc_aav4003")
 config.setdefault("fastq_dir","raw_data")
 config.setdefault("results_dir","results")
 config.setdefault("low_complexity_filter",True)
@@ -57,7 +58,7 @@ def get_flex_probeset():
 # Check if three-prime
 if config['mode'] == 'three-prime':
     rule cellranger:
-        container: 'docker://austinv11/10xrangers:latest'
+        container: f"docker://${config['registry']}/10xrangers:latest"
         input:
             fastq_dir=config["fastq_dir"]
         output:
@@ -98,7 +99,7 @@ elif config['mode'] == 'flex':
                     "feature_types,Gene Expression"
                 ])
     rule cellranger:
-        container: 'docker://austinv11/10xrangers:latest'
+        container: f"docker://${config['registry']}/10xrangers:latest'
         input:
             fastq_dir=config["fastq_dir"],
             multi_csv_input="multi_csv_input.csv"

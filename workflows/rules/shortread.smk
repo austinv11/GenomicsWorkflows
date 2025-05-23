@@ -20,6 +20,7 @@ from pathlib import Path
 import glob
 
 # Config for input/output directories
+config.setdefault("registry", "biohpc_aav4003")
 config["fastq_dir"] = "raw_data"
 config["results_dir"] = "results"
 config["low_complexity_filter"] = True
@@ -71,7 +72,7 @@ rule merge_lanes:
         """
 
 rule fastp:
-    container: "docker://austinv11/multiqc:latest"
+    container: f"docker://${config['registry']}/multiqc:latest"
     input:
         r1="{results}/merged/{sample}_R1.fastq.gz",
         r2="{results}/merged/{sample}_R2.fastq.gz"
