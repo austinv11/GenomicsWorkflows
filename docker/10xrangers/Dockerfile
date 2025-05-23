@@ -63,9 +63,9 @@ RUN apt-get update \
 
 COPY wrapper.sh /bin/
 
-RUN cellranger telemetry disable all \
-    && spaceranger telemetry disable all \
-    && xeniumranger telemetry disable all
+RUN cellranger telemetry disable all #\
+    #&& spaceranger telemetry disable all \
+    #&& xeniumranger telemetry disable all
 
 VOLUME /work
 
