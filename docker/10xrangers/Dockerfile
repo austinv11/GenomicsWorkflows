@@ -11,10 +11,10 @@ WORKDIR /build
 ENV CELLRANGER_DOWNLOAD_VER="9.0.1"
 ENV CELLRANGER_HUMAN_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2024-A.tar.gz"
 ENV CELLRANGER_MOUSE_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCm39-2024-A.tar.gz"
-ENV CELLRANGER_RAT_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-mRatBN7-2-2024-A.tar.gz"
+#ENV CELLRANGER_RAT_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-mRatBN7-2-2024-A.tar.gz"
 ENV CELLRANGER_HUMAN_AND_MOUSE_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38_and_GRCm39-2024-A.tar.gz"
-ENV CELLRANGER_HUMAN_VDJ_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-vdj/refdata-cellranger-vdj-GRCh38-alts-ensembl-7.1.0.tar.gz"
-ENV CELLRANGER_MOUSE_VDJ_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-vdj/refdata-cellranger-vdj-GRCm38-alts-ensembl-7.0.0.tar.gz"
+#ENV CELLRANGER_HUMAN_VDJ_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-vdj/refdata-cellranger-vdj-GRCh38-alts-ensembl-7.1.0.tar.gz"
+#ENV CELLRANGER_MOUSE_VDJ_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-vdj/refdata-cellranger-vdj-GRCm38-alts-ensembl-7.0.0.tar.gz"
 #probe/antibody probe barcodes: https://cf.10xgenomics.com/supp/cell-exp/probeset/probe-barcodes-fixed-rna-profiling.txt
 ENV CELLRANGER_FLEX_HUMAN_PROBE_SET_URL="https://cf.10xgenomics.com/supp/cell-exp/probeset/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv"
 ENV CELLRANGER_FLEX_MOUSE_PROBE_SET_URL="https://cf.10xgenomics.com/supp/cell-exp/probeset/Chromium_Mouse_Transcriptome_Probe_Set_v1.1.1_GRCm39-2024-A.csv"
@@ -40,10 +40,10 @@ ENV PATH="$PATH:${CELLRANGER_BIN_PATH}:${SPACERANGER_BIN_PATH}:${XENIUMRANGER_BI
 # Download references
 ADD $CELLRANGER_HUMAN_REFERENCE_URL /ref/cellranger/
 ADD $CELLRANGER_MOUSE_REFERENCE_URL /ref/cellranger/
-ADD $CELLRANGER_RAT_REFERENCE_URL /ref/cellranger/
+#ADD $CELLRANGER_RAT_REFERENCE_URL /ref/cellranger/
 ADD $CELLRANGER_HUMAN_AND_MOUSE_REFERENCE_URL /ref/cellranger/
-ADD $CELLRANGER_HUMAN_VDJ_REFERENCE_URL /ref/cellranger/
-ADD $CELLRANGER_MOUSE_VDJ_REFERENCE_URL /ref/cellranger/
+#ADD $CELLRANGER_HUMAN_VDJ_REFERENCE_URL /ref/cellranger/
+#ADD $CELLRANGER_MOUSE_VDJ_REFERENCE_URL /ref/cellranger/
 ADD $CELLRANGER_FLEX_HUMAN_PROBE_SET_URL /ref/cellranger/
 ADD $CELLRANGER_FLEX_MOUSE_PROBE_SET_URL /ref/cellranger/
 
