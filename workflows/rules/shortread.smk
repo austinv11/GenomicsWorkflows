@@ -72,7 +72,7 @@ rule merge_lanes:
         """
 
 rule fastp:
-    container: f"docker://${config['registry']}/multiqc:latest"
+    container: f"{config['workflow_dir']}/docker/multiqc/multiqc.sif"
     input:
         r1="{results}/merged/{sample}_R1.fastq.gz",
         r2="{results}/merged/{sample}_R2.fastq.gz"

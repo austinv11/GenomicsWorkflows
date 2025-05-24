@@ -4,9 +4,11 @@ results_dir: "fastp_results"
 cellranger_output: "cellranger_out"
 
 # Reference and mode configuration
-registry: "biohpc_aav4003"
 organism: "human"  # Options: human, mouse
 mode: "three-prime"  # Options: three-prime, flex
 
 # Preprocessing options
 low_complexity_filter: true
+
+# Where these workflows are installed
+workflow_dir: "/workdir/aav4003/GenomicsWorkflows"

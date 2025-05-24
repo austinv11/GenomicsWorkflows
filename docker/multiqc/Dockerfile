@@ -9,7 +9,7 @@ ADD https://opengene.org/fastplong/fastplong.${FASTPLONG_VER} /bin/fastplong
 
 RUN chmod a+x /bin/fastp && chmod a+x /bin/fastplong
 
-ENV PATH="/bin/:${PATH}"
+ENV PATH="/bin/:$PATH"
 
 WORKDIR /work
 
