@@ -52,6 +52,16 @@ ADD $SPACERANGER_MOUSE_REFERENCE_URL /ref/spaceranger/
 ADD $SPACERANGER_HUMAN_PROBE_SET_URL /ref/spaceranger/
 ADD $SPACERANGER_MOUSE_PROBE_SET_URL /ref/spaceranger/
 
+# Extract the references and delete the tarballs but iterating over all tar.gz files
+RUN for file in /ref/cellranger/*.tar.gz; do \
+        tar -xzf "$file" -C /ref/cellranger/ && \
+        rm -f "$file"; \
+    done && \
+    for file in /ref/spaceranger/*.tar.gz; do \
+        tar -xzf "$file" -C /ref/spaceranger/ && \
+        rm -f "$file"; \
+    done
+
 WORKDIR /work
 RUN rm -rf /build
 

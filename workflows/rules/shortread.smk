@@ -18,27 +18,13 @@ Author: Austin Varela
 
 from pathlib import Path
 import glob
+import re
 
 # Config for input/output directories
 config.setdefault("registry", "biohpc_aav4003")
 config.setdefault("fastq_dir", "raw_data")
 config.setdefault("results_dir", "results")
 config.setdefault("low_complexity_filter", True)
-
-# Get sample names from fastq files
-def get_samples():
-    fastqs = glob.glob(f"{config['fastq_dir']}/*_R1_*.f*q*")
-    return list(set([Path(f).name.split("_R1_")[0] for f in fastqs]))
-
-
-# Input functions
-def get_fastq_r1(wildcards):
-    return sorted(glob.glob(f"{config['fastq_dir']}/{wildcards.sample}_R1_*.f*q*"))
-
-
-def get_fastq_r2(wildcards):
-    return sorted(glob.glob(f"{config['fastq_dir']}/{wildcards.sample}_R2_*.f*q*"))
-
 
 # Pipeline rules
 # rule all:
@@ -50,21 +36,59 @@ def get_fastq_r2(wildcards):
 #             read=[1, 2]
 #         )
 
+SAMPLE_RE = r"[A-Za-z0-9._-]+"
+READ_RE   = r"[12]"
+LANE_RE   = r"\d{3}"
+
+wildcard_constraints:
+    sample = SAMPLE_RE,
+    read   = READ_RE,
+    lane   = LANE_RE
+
+def get_samples():
+    return sorted({
+        re.sub(r"_L\d{3}(_R[12].*)?$", "", Path(f).stem)   # strip lane & read
+                   for f in glob.glob(f"{config['fastq_dir']}/*_R1_*.f*q*")})
+
 rule ensure_gzipped:
+    """
+    Copy *.fastq.gz as-is, or gzip *.fastq, so every lane/read file ends up
+    in {results_dir}/gzipped/…
+    """
     input:
-        fastq="{dir}/{file}.fastq"
+        fq= lambda wc: glob.glob(f"{config['fastq_dir']}/{wc.sample}_L{wc.lane}_R{wc.read}_001.*"),
     output:
-        gz="{dir}/{file}.fastq.gz"
-    shell:
-        "gzip -c {input.fastq} > {output.gz}"
+        gz=f"{config['results_dir']}/gzipped/{{sample}}_L{{lane}}_R{{read}}_001.fastq.gz"
+    threads: 2
+    shell: r"""
+        mkdir -p $(dirname {output.gz})
+         if [[ ! -s {input.fq} ]]; then
+            echo "Missing or empty input: {input.fq}" >&2
+            exit 1
+        fi
+        if [[ "{input.fq}" == *.gz ]]; then
+            cp {input.fq} {output.gz}
+        else
+            gzip -c {input.fq} > {output.gz}
+        fi
+    """
+
 
 rule merge_lanes:
     input:
-        r1=get_fastq_r1,
-        r2=get_fastq_r2
+        r1=lambda wc: expand(
+            f"{config['results_dir']}/gzipped/{{sample}}_L{{lane}}_R1_001.fastq.gz",
+            sample=[wc.sample],
+            lane=[Path(f).stem.split("_L")[1][:3] for f in glob.glob(f"{config['fastq_dir']}/{wc.sample}_L*_R1_*.f*q*")]
+        ),
+        r2=lambda wc: expand(
+            f"{config['results_dir']}/gzipped/{{sample}}_L{{lane}}_R2_001.fastq.gz",
+            sample=[wc.sample],
+            lane=[Path(f).stem.split("_L")[1][:3] for f in glob.glob(f"{config['fastq_dir']}/{wc.sample}_L*_R2_*.f*q*")]
+        )
     output:
-        r1=temp("{results}/merged/{sample}_R1.fastq.gz"),
-        r2=temp("{results}/merged/{sample}_R2.fastq.gz")
+        r1=temp(f"{config['results_dir']}/merged/{{sample}}_L001_R1_001.fastq.gz"),
+        r2=temp(f"{config['results_dir']}/merged/{{sample}}_L001_R2_001.fastq.gz")
     shell:
         """
         cat {input.r1} > {output.r1}
@@ -72,29 +96,27 @@ rule merge_lanes:
         """
 
 rule fastp:
-    container: f"{config['workflow_dir']}/docker/multiqc/multiqc.sif"
+    container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
+    shadow: "copy-minimal"  # Required when using .sif
     input:
-        r1="{results}/merged/{sample}_R1.fastq.gz",
-        r2="{results}/merged/{sample}_R2.fastq.gz"
+        r1=f"{config['results_dir']}/merged/{{sample}}_L001_R1_001.fastq.gz",
+        r2=f"{config['results_dir']}/merged/{{sample}}_L001_R2_001.fastq.gz",
     output:
-        r1="{results}/fastp/{sample}_R1.fastq.gz",
-        r2="{results}/fastp/{sample}_R2.fastq.gz",
-        json="{results}/fastp/{sample}.json",
-        html="{results}/fastp/{sample}.html"
+        r1=f"{config['results_dir']}/fastp/{{sample}}_L001_R1_001.fastq.gz",
+        r2=f"{config['results_dir']}/fastp/{{sample}}_L001_R2_001.fastq.gz",
+        json=f"{config['results_dir']}/fastp/{{sample}}.json",
+        html=f"{config['results_dir']}/fastp/{{sample}}.html",
     log:
-        "{results}/fastp/{sample}.log"
-    threads: 4
+        f"{config['results_dir']}/fastp/{{sample}}.log"
+    threads: 8
     params:
         low_complexity = "--low_complexity_filter" if config["low_complexity_filter"] else ""
     shell:
         """
+        touch {log}
         fastp -i {input.r1} -I {input.r2} \
               -o {output.r1} -O {output.r2} \
               --json {output.json} --html {output.html} \
               --detect_adapter_for_pe \
               --thread {threads} {params.low_complexity} > {log} 2>&1
         """
-
-wildcard_constraints:
-    sample="[^/]+",
-    read="[12]"
