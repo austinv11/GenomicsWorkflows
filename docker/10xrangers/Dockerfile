@@ -6,6 +6,12 @@ ENV TENX_DISABLE_TELEMETRY=1
 
 WORKDIR /build
 
+# Install tree command
+RUN apt-get update \
+    && apt-get install -y tree \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set the URLS
 ## CellRanger
 ENV CELLRANGER_DOWNLOAD_VER="9.0.1"
@@ -64,12 +70,6 @@ RUN for file in /ref/cellranger/*.tar.gz; do \
 
 WORKDIR /work
 RUN rm -rf /build
-
-# Install tree command
-RUN apt-get update \
-    && apt-get install -y tree \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY wrapper.sh /bin/
 
