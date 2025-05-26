@@ -12,6 +12,8 @@ else # biohpc
     docker_user="biohpc_$username"
 fi
 
+# Delete old sif files
+rm -f "$(pwd)*/*.sif"
 $docker_exec build -t 10xrangers "$(pwd)/10xrangers/"
 $docker_exec save -o "$(pwd)/10xrangers/10x_ranger_images.tar" "$docker_user/10xrangers:latest"
 apptainer build "$(pwd)/10xrangers/10x_ranger_image.sif" "docker-archive://$(pwd)/10xrangers/10x_ranger_images.tar"

@@ -43,9 +43,9 @@ rule all:
 
 def get_reference_file():
     if config['organism'] == 'human':
-        return "/ref/cellranger/refdata-gex-GRCh38-2024-A.tar.gz"
+        return "/ref/cellranger/refdata-gex-GRCh38-2024-A"
     elif config['organism'] == 'mouse':
-        return "/ref/cellranger/refdata-gex-GRCm39-2024-A.tar.gz"
+        return "/ref/cellranger/refdata-gex-GRCm39-2024-A"
     else:
         raise ValueError("Invalid mode specified. Must be either 'three-prime' or 'flex'.")
 
