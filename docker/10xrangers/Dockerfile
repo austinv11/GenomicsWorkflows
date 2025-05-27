@@ -43,6 +43,8 @@ ENV SPACERANGER_BIN_PATH="/bin/spaceranger-${SPACERANGER_DOWNLOAD_VER}/bin/"
 ENV XENIUMRANGER_BIN_PATH="/bin/xeniumranger-xenium${XENIUMRANGER_DOWNLOAD_VER_TRUNCATED}/bin/"
 ENV PATH="$PATH:${CELLRANGER_BIN_PATH}:${SPACERANGER_BIN_PATH}:${XENIUMRANGER_BIN_PATH}"
 
+# Wrapper script to get the reference data...
+
 # Download references
 ADD $CELLRANGER_HUMAN_REFERENCE_URL /ref/cellranger/
 ADD $CELLRANGER_MOUSE_REFERENCE_URL /ref/cellranger/
