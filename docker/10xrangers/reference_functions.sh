@@ -4,7 +4,7 @@
 # If the file ends in tar.gz, it will be extracted
 download_and_extract() {
     local url="$1"
-    local output_dir="$2"
+    local output_dir=$(pwd)  #"$2"
 
     local filename=$(basename "$url")
     local filepath="$output_dir/$filename"

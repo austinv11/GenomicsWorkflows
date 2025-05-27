@@ -4,5 +4,5 @@
 if [ $# -eq 0 ]; then
     tree /ref
 else
-    bash -c "export PATH=\"$PATH\"; export TENX_DISABLE_TELEMETRY=\"$TENX_DISABLE_TELEMETRY\"; $@ "
+    bash -c ". /bin/reference_functions.sh && export PATH=\"$PATH\"; export TENX_DISABLE_TELEMETRY=\"$TENX_DISABLE_TELEMETRY\"; $@ "
 fi

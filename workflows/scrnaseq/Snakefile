@@ -43,18 +43,22 @@ rule all:
 
 def get_reference_file():
     if config['organism'] == 'human':
-        return "/ref/cellranger/refdata-gex-GRCh38-2024-A"
+        # return "/ref/cellranger/refdata-gex-GRCh38-2024-A"
+        return "$(cellranger_human_reference)"
     elif config['organism'] == 'mouse':
-        return "/ref/cellranger/refdata-gex-GRCm39-2024-A"
+        # return "/ref/cellranger/refdata-gex-GRCm39-2024-A"
+        return "$(cellranger_mouse_reference)"
     else:
         raise ValueError("Invalid mode specified. Must be either 'three-prime' or 'flex'.")
 
 
 def get_flex_probeset():
     if config['organism'] == 'human':
-        return "/ref/cellranger/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv"
+        # return "/ref/cellranger/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv"
+        return "${cellranger_human_flex_probe_set}"
     elif config['organism'] == 'mouse':
-        return "/ref/cellranger/Chromium_Mouse_Transcriptome_Probe_Set_v1.1.1_GRCm39-2024-A.csv"
+        # return "/ref/cellranger/Chromium_Mouse_Transcriptome_Probe_Set_v1.1.1_GRCm39-2024-A.csv"
+        return "${cellranger_mouse_flex_probe_set}"
     else:
         raise ValueError("Invalid organism specified. Must be either 'human' or 'mouse'.")
 
