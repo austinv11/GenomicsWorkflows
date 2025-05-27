@@ -8,7 +8,7 @@ WORKDIR /build
 
 # Install tree command
 RUN apt-get update \
-    && apt-get install -y tree \
+    && apt-get install -y tree curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

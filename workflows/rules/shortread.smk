@@ -50,6 +50,11 @@ def get_samples():
         re.sub(r"_L\d{3}(_R[12].*)?$", "", Path(f).stem)   # strip lane & read
                    for f in glob.glob(f"{config['fastq_dir']}/*_R1_*.f*q*")})
 
+
+def get_fastp_dir():
+    return os.path.abspath(f"{config['results_dir']}/fastp")
+
+
 rule ensure_gzipped:
     """
     Copy *.fastq.gz as-is, or gzip *.fastq, so every lane/read file ends up
@@ -102,12 +107,12 @@ rule fastp:
         r1=f"{config['results_dir']}/merged/{{sample}}_L001_R1_001.fastq.gz",
         r2=f"{config['results_dir']}/merged/{{sample}}_L001_R2_001.fastq.gz",
     output:
-        r1=f"{config['results_dir']}/fastp/{{sample}}_L001_R1_001.fastq.gz",
-        r2=f"{config['results_dir']}/fastp/{{sample}}_L001_R2_001.fastq.gz",
-        json=f"{config['results_dir']}/fastp/{{sample}}.json",
-        html=f"{config['results_dir']}/fastp/{{sample}}.html",
+        r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+        r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+        json=f"{get_fastp_dir()}/{{sample}}.json",
+        html=f"{get_fastp_dir()}/{{sample}}.html",
     log:
-        f"{config['results_dir']}/fastp/{{sample}}.log"
+        f"{get_fastp_dir()}/{{sample}}.log"
     threads: 8
     params:
         low_complexity = "--low_complexity_filter" if config["low_complexity_filter"] else ""

@@ -39,6 +39,10 @@ rule all:
         expand(
             f"{config['results_dir']}/{config['cellranger_output']}/{{sample}}",
             sample=get_samples()
+        ),
+        expand(
+            f"{config['results_dir']}/notebooks/{{sample}}_preprocessing.ipynb",
+            sample=get_samples()
         )
 
 def get_reference_file():
@@ -55,15 +59,15 @@ def get_reference_file():
 def get_flex_probeset():
     if config['organism'] == 'human':
         # return "/ref/cellranger/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv"
-        return "${cellranger_human_flex_probe_set}"
+        return "$(cellranger_human_flex_probe_set)"
     elif config['organism'] == 'mouse':
         # return "/ref/cellranger/Chromium_Mouse_Transcriptome_Probe_Set_v1.1.1_GRCm39-2024-A.csv"
-        return "${cellranger_mouse_flex_probe_set}"
+        return "$(cellranger_mouse_flex_probe_set)"
     else:
         raise ValueError("Invalid organism specified. Must be either 'human' or 'mouse'.")
 
 
-def get_fastq_dir():
+def get_fastp_dir():
     return os.path.abspath(f"{config['results_dir']}/fastp")
 
 
@@ -78,63 +82,69 @@ if config['mode'] == 'three-prime':
         container: f"{config['workflow_dir']}/docker/10xrangers/10x_ranger_image.sif"
         shadow: "copy-minimal"  # Required when using .sif
         input:
-            fastq_dir=get_fastq_dir(),
-            r1=f"{get_fastq_dir()}/{{sample}}_L001_R1_001.fastq.gz",
-            r2=f"{get_fastq_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+            r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+            r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
         output:
             cellranger_output=directory(f"{config['results_dir']}/{config['cellranger_output']}/{{sample}}")
         params:
+            fastq_dir=get_fastp_dir(),
             reference=get_reference_file(),
             sample_name=lambda wc: strip_s_suffix(wc.sample)
         threads: 16
         shell:
             """
+            . /bin/reference_functions.sh  # Load the reference environment variables
             cellranger count \
             --id {wildcards.sample} \
             --output-dir {output.cellranger_output} \
             --transcriptome {params.reference} \
-            --fastqs {input.fastq_dir} \
+            --fastqs {params.fastq_dir} \
             --sample {params.sample_name} \
             --create-bam true \
             --localcores {threads}
             """
 elif config['mode'] == 'flex':
     rule generate_multi_csv:  # Create the csv file input for the cellranger multi command
+        container: f"{config['workflow_dir']}/docker/10xrangers/10x_ranger_image.sif"
+        shadow: "copy-minimal"  # Required when using .sif
         input:
-            fastq_dir=get_fastq_dir(),
-            r1=f"{config['results_dir']}/fastp/{{sample}}_L001_R1_001.fastq.gz",
-            r2=f"{config['results_dir']}/fastp/{{sample}}_L001_R2_001.fastq.gz",
+            r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+            r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
         output:
             multi_csv_input="multi_csv_input.csv"
         params:
+            fastq_dir=get_fastp_dir(),
             reference=get_reference_file(),
             probeset=get_flex_probeset(),
             sample_name=lambda wc: strip_s_suffix(wc.sample)
-        run:
-            with open(output.multi_csv_input, 'w') as f:
-                f.writelines([
-                    "[gene-expression]\n",
-                    f"reference,{params.reference}\n",
-                    "create-bam,true\n"
-                    f"probe-set,{params.probeset}\n",
-                    "[libraries]\n",
-                    f"fastq-id,{params.sample_name}\n",
-                    f"fastqs,{input.fastq_dir}\n",
-                    "feature_types,Gene Expression\n"
-                ])
+        shell:
+            """
+            . /bin/reference_functions.sh  # Load the reference environment variables
+            echo "[gene-expression]" >> {output.multi_csv_input}
+            echo "reference,{params.reference}" >> {output.multi_csv_input}
+            echo "create-bam,true" >> {output.multi_csv_input}
+            echo "probe-set,{params.probeset}" >> {output.multi_csv_input}
+            echo "[libraries]" >> {output.multi_csv_input}
+            echo "fastq-id,{params.sample_name}" >> {output.multi_csv_input}
+            echo "fastqs,{params.fastq_dir}" >> {output.multi_csv_input}
+            echo "feature_types,Gene Expression" >> {output.multi_csv_input}
+            """
+
     rule cellranger:
         container: f"{config['workflow_dir']}/docker/10xrangers/10x_ranger_image.sif"
         shadow: "copy-minimal"  # Required when using .sif
         input:
-            fastq_dir=get_fastq_dir(),
-            r1=f"{get_fastq_dir()}/{{sample}}_L001_R1_001.fastq.gz",
-            r2=f"{get_fastq_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+            r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+            r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
             multi_csv_input="multi_csv_input.csv"
         output:
             cellranger_output=directory(f"{config['results_dir']}/{config['cellranger_output']}/{{sample}}")
+        # params:
+        #     fastq_dir=get_fastp_dir(),
         threads: 16
         shell:
             """
+            . /bin/reference_functions.sh  # Load the reference environment variables
             cellranger multi \
             --id {wildcards.sample} \
             --csv {input.multi_csv_input} \
@@ -148,9 +158,9 @@ rule multiqc:
     container: f"{config['workflow_dir']}/docker/multiqc/multiqc.sif"
     shadow: "copy-minimal"  # Required when using .sif
     input:
-        tenx_output=f"{config['results_dir']}/{config['cellranger_output']}/{{sample}}",
-        r1=f"{config['results_dir']}/fastp/{{sample}}_L001_R1_001.fastq.gz",
-        r2=f"{config['results_dir']}/fastp/{{sample}}_L001_R2_001.fastq.gz",
+        tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
+        r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+        r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
     output:
         outdir=directory(f"{config['results_dir']}/multiqc/{{sample}}/"),
         outreport=f"{config['results_dir']}/multiqc/{{sample}}/multiqc_report.html"
@@ -158,3 +168,27 @@ rule multiqc:
         indir=directory(config["results_dir"])
     shell:
         "multiqc --outdir {output.outdir} {params.indir}"
+
+
+rule preprocess_scrna:
+    input:
+        tenx_output=f"{config['results_dir']}/{config['cellranger_output']}/{{sample}}",
+        notebook=f"{config['workflow_dir']}/notebooks/scrnaseq_preprocessing.ipynb"
+    output:
+        notebook_out=f"{config['results_dir']}/notebooks/{{sample}}_preprocessing.ipynb",
+        output_file=f"{config['results_dir']}/notebooks/{{sample}}_processed_adata.h5ad"
+    params:
+        outlier_threshold="5",  # Parameter for MAD-based outlier detection
+        n_hvgs="5000"  # Number of highly variable genes to select
+    log:
+        f"{config['results_dir']}/logs/{{sample}}_preprocessing.log"
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+    shell:
+        """
+        export SNAKEMAKE_TENX_OUTPUT_DIR={input.tenx_output}
+        export SNAKEMAKE_OUTLIER_THRESHOLD={params.outlier_threshold}
+        export SNAKEMAKE_N_HVGS={params.n_hvgs}
+        export SNAKEMAKE_PROCESSED_FILENAME={output.output_file}
+        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        """
