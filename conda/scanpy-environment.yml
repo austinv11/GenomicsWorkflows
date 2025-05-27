@@ -11,5 +11,3 @@ dependencies:
   - seaborn~=0.13
   - kneed~=0.8
   - papermill
-  - pip:
-    - cellbender==0.3.0
