@@ -33,15 +33,15 @@ def get_samples():
 rule all:
     input:
         expand(
-            f"{config['results_dir']}/multiqc/{{sample}}/multiqc_report.html",
+            f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/multiqc_report.html",
             sample=get_samples()
         ),
         expand(
-            f"{config['results_dir']}/{config['cellranger_output']}/{{sample}}",
+            f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
             sample=get_samples()
         ),
         expand(
-            f"{config['results_dir']}/notebooks/{{sample}}_preprocessing.ipynb",
+            f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_preprocessing.ipynb",
             sample=get_samples()
         )
 
@@ -162,8 +162,8 @@ rule multiqc:
         r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
         r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
     output:
-        outdir=directory(f"{config['results_dir']}/multiqc/{{sample}}/"),
-        outreport=f"{config['results_dir']}/multiqc/{{sample}}/multiqc_report.html"
+        outdir=directory(f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/"),
+        outreport=f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/multiqc_report.html"
     params:
         indir=directory(config["results_dir"])
     shell:
@@ -172,16 +172,18 @@ rule multiqc:
 
 rule preprocess_scrna:
     input:
-        tenx_output=f"{config['results_dir']}/{config['cellranger_output']}/{{sample}}",
+        tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
         notebook=f"{config['workflow_dir']}/notebooks/scrnaseq_preprocessing.ipynb"
     output:
-        notebook_out=f"{config['results_dir']}/notebooks/{{sample}}_preprocessing.ipynb",
-        output_file=f"{config['results_dir']}/notebooks/{{sample}}_processed_adata.h5ad"
+        notebook_out=f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_preprocessing.ipynb",
+        output_file=f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_processed_adata.h5ad"
     params:
         outlier_threshold="5",  # Parameter for MAD-based outlier detection
         n_hvgs="5000"  # Number of highly variable genes to select
     log:
-        f"{config['results_dir']}/logs/{{sample}}_preprocessing.log"
+        f"{os.path.abspath(config['results_dir'])}/logs/{{sample}}_preprocessing.log"
+    container:
+         f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
     conda:
         f"{config['workflow_dir']}/conda/scanpy-environment.yml"
     shell:
