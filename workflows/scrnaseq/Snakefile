@@ -90,6 +90,8 @@ if config['mode'] == 'three-prime':
             fastq_dir=get_fastp_dir(),
             reference=get_reference_file(),
             sample_name=lambda wc: strip_s_suffix(wc.sample)
+        log:
+            f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}/_log"
         threads: 16
         shell:
             """
@@ -139,6 +141,8 @@ elif config['mode'] == 'flex':
             multi_csv_input="multi_csv_input.csv"
         output:
             cellranger_output=directory(f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}")
+        log:
+            f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}/_log"
         # params:
         #     fastq_dir=get_fastp_dir(),
         threads: 16
@@ -155,7 +159,7 @@ else:
     raise ValueError("Invalid mode specified. Must be either 'three-prime' or 'flex'.")
 
 rule multiqc:
-    container: f"{config['workflow_dir']}/docker/multiqc/multiqc.sif"
+    container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
     shadow: "copy-minimal"  # Required when using .sif
     input:
         tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
@@ -165,27 +169,43 @@ rule multiqc:
         outdir=directory(f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/"),
         outreport=f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/multiqc_report.html"
     params:
-        indir=directory(config["results_dir"])
+        indir=directory(os.path.abspath(config["results_dir"]))
     shell:
         "multiqc --outdir {output.outdir} {params.indir}"
 
 
+rule copy_notebook:
+    input:
+        notebook = f"{config['workflow_dir']}/notebooks/scrnaseq_preprocessing.ipynb"
+    output:
+        temp_notebook = temp(
+            f"{os.path.abspath(config['results_dir'])}/notebooks/scrnaseq_preprocessing.ipynb"
+        )
+    shell:
+        """
+        mkdir -p $(dirname {output.temp_notebook})
+        cp {input.notebook} {output.temp_notebook}
+        """
+
+
 rule preprocess_scrna:
+    container:
+         f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
     input:
         tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
-        notebook=f"{config['workflow_dir']}/notebooks/scrnaseq_preprocessing.ipynb"
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/scrnaseq_preprocessing.ipynb"
     output:
         notebook_out=f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_preprocessing.ipynb",
+        html_out=f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_preprocessing.html",
         output_file=f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_processed_adata.h5ad"
     params:
         outlier_threshold="5",  # Parameter for MAD-based outlier detection
         n_hvgs="5000"  # Number of highly variable genes to select
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/{{sample}}_preprocessing.log"
-    container:
-         f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
-    conda:
-        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
     shell:
         """
         export SNAKEMAKE_TENX_OUTPUT_DIR={input.tenx_output}
@@ -193,4 +213,5 @@ rule preprocess_scrna:
         export SNAKEMAKE_N_HVGS={params.n_hvgs}
         export SNAKEMAKE_PROCESSED_FILENAME={output.output_file}
         papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out}
         """

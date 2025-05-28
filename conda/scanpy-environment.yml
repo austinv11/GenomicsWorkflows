@@ -5,6 +5,7 @@ dependencies:
   - python=3.11
   - ipykernel
   - notebook
+  - jupyter
   - scanpy~=1.11
   - leidenalg~=0.1
   - python-igraph~=0.11

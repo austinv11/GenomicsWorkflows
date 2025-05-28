@@ -39,7 +39,7 @@ conda-lock -f "$(pwd)/../conda/scanpy-environment.yml" \
 echo "FROM continuumio/miniconda3:latest AS builder" > "$(pwd)/generated/Dockerfile"
 echo "COPY scanpy-environment.lock /tmp/" >> "$(pwd)/generated/Dockerfile"
 echo "RUN conda create -p /opt/env --copy --file /tmp/scanpy-environment.lock" >> "$(pwd)/generated/Dockerfile"
-echo "FROM gcr.io/distroless/base-debian10" >> "$(pwd)/generated/Dockerfile"
+echo "FROM debian:bookworm-slim" >> "$(pwd)/generated/Dockerfile"
 echo "COPY --from=builder /opt/env /opt/env" >> "$(pwd)/generated/Dockerfile"
 echo "ENV PATH=/opt/env/bin:\$PATH" >> "$(pwd)/generated/Dockerfile"
 # Build the scanpy environment Docker image
