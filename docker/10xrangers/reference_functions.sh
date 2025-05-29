@@ -12,6 +12,13 @@ download_and_extract() {
 
     # Create output directory if it doesn't exist
     mkdir -p "$output_dir"
+
+    # Check if the final file already exists, if so return the path current path
+    if [[ -e "$filepath" ]]; then
+        echo "$filepath"
+        return 0
+    fi
+
     # Download the file
     if ! curl -L -o "$filepath" "$url"; then
         >&2 echo "Error downloading $url"
