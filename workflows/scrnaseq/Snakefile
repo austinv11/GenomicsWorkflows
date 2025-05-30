@@ -203,7 +203,7 @@ rule make_h5ad:
         tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
     output:
         output_file=temp(f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_converted_adata.h5ad")
-    script: f"{config['workflow_dir']}/scripts/convert_10x_directory_to_h5ad.py"
+    script: f"{config['workflow_dir']}/workflows/scrnaseq/convert_10x_directory_to_h5ad.py"
 
 
 rule preprocess_scrna:
@@ -246,7 +246,7 @@ rule combine_samples:  # Combine multiple .h5ad files into a single file if ther
         )
     output:
         combined_h5ad=temp(f"{os.path.abspath(config['results_dir'])}/temp_combined_processed_adata.h5ad")
-    script: f"{config['workflow_dir']}/scripts/concatenate_h5ads.py"
+    script: f"{config['workflow_dir']}/workflows/scrnaseq/concatenate_h5ads.py"
 
 rule preprocess_combined_scrna:
     container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
