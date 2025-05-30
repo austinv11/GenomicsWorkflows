@@ -2,7 +2,7 @@ import scanpy as sc
 from glob import glob
 import os
 
-tenx_outdir = snakemake.input.tenx_outdir
+tenx_outdir = snakemake.input.tenx_output
 outfile = snakemake.output.output_file
 sample_name = "_".join(os.path.basename(tenx_outdir).split("_")[:-1])  # Extract sample name from directory name
 
