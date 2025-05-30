@@ -14,6 +14,8 @@ config.setdefault("low_complexity_filter",True)
 config.setdefault("mode", 'three-prime')  # Either three-prime or flex
 config.setdefault("organism", 'human')  # Either human or mouse
 config.setdefault("cellranger_output", "cellranger_out")  # Cellranger output directory
+config.setdefault("outlier_threshold", "5")  # Outlier threshold for preprocessing
+config.setdefault("n_hvgs", "5000")  # Number of highly variable genes to select
 
 # Import shortread workflow
 include: "../rules/shortread.smk"
@@ -43,7 +45,10 @@ rule all:
         expand(
             f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_preprocessing.ipynb",
             sample=get_samples()
-        )
+        ),
+        f"{os.path.abspath(config['results_dir'])}/combined_preprocessing.ipynb",
+        f"{os.path.abspath(config['results_dir'])}/combined_preprocessing.html",
+        f"{os.path.abspath(config['results_dir'])}/combined_processed_adata.h5ad",
 
 def get_reference_file():
     if config['organism'] == 'human':
@@ -188,7 +193,7 @@ rule copy_notebook:
         """
 
 
-rule preprocess_scrna:
+rule make_h5ad:
     container:
          f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
     shadow: "copy-minimal"  # Required when using .sif
@@ -196,22 +201,76 @@ rule preprocess_scrna:
         f"{config['workflow_dir']}/conda/scanpy-environment.yml"
     input:
         tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
+    output:
+        output_file=temp(f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_converted_adata.h5ad")
+    script: f"{config['workflow_dir']}/scripts/convert_10x_directory_to_h5ad.py"
+
+
+rule preprocess_scrna:
+    container:
+         f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_converted_adata.h5ad",
         notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/scrnaseq_preprocessing.ipynb"
     output:
         notebook_out=f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_preprocessing.ipynb",
         html_out=f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_preprocessing.html",
         output_file=f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_processed_adata.h5ad"
     params:
-        outlier_threshold="5",  # Parameter for MAD-based outlier detection
-        n_hvgs="5000"  # Number of highly variable genes to select
+        outlier_threshold=config['outlier_threshold'],  # Parameter for MAD-based outlier detection
+        n_hvgs=config['n_hvgs'] # Number of highly variable genes to select
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/{{sample}}_preprocessing.log"
     shell:
         """
-        export SNAKEMAKE_TENX_OUTPUT_DIR={input.tenx_output}
+        export SNAKEMAKE_H5AD_FILE={input.input_file}
         export SNAKEMAKE_OUTLIER_THRESHOLD={params.outlier_threshold}
         export SNAKEMAKE_N_HVGS={params.n_hvgs}
         export SNAKEMAKE_PROCESSED_FILENAME={output.output_file}
         papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
-        jupyter nbconvert --to html {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+        """
+
+rule combine_samples:  # Combine multiple .h5ad files into a single file if there are multiple samples
+    container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+    input:
+        h5ad_files=expand(
+            f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_processed_adata.h5ad",
+            sample=get_samples()
+        )
+    output:
+        combined_h5ad=temp(f"{os.path.abspath(config['results_dir'])}/temp_combined_processed_adata.h5ad")
+    script: f"{config['workflow_dir']}/scripts/concatenate_h5ads.py"
+
+rule preprocess_combined_scrna:
+    container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['results_dir'])}/temp_combined_processed_adata.h5ad",
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/scrnaseq_preprocessing.ipynb"
+    output:
+        notebook_out=f"{os.path.abspath(config['results_dir'])}/combined_preprocessing.ipynb",
+        html_out=f"{os.path.abspath(config['results_dir'])}/combined_preprocessing.html",
+        output_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata.h5ad"
+    params:
+        outlier_threshold=config['outlier_threshold'],  # Parameter for MAD-based outlier detection
+        n_hvgs=config['n_hvgs'] # Number of highly variable genes to select
+    log:
+        f"{os.path.abspath(config['results_dir'])}/logs/combined_preprocessing.log"
+    shell:
+        """
+        export SNAKEMAKE_H5AD_FILE={input.input_file}
+        export SNAKEMAKE_OUTLIER_THRESHOLD={params.outlier_threshold}
+        export SNAKEMAKE_N_HVGS={params.n_hvgs}
+        export SNAKEMAKE_PROCESSED_FILENAME={output.output_file}
+        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
         """
