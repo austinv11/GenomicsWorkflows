@@ -49,7 +49,6 @@ RUN tar xjf bcftools-${BCFTOOLS_VER}.tar.bz2 && \
 RUN tar xzf bedtools-${BEDTOOLS_VER}.tar.gz && \
     cd bedtools2*/ \
     && make \
-    && make install \
     && mv bin/* /bin/
 
 
