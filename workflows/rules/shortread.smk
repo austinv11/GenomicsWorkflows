@@ -63,7 +63,7 @@ rule ensure_gzipped:
     input:
         fq= lambda wc: glob.glob(f"{config['fastq_dir']}/{wc.sample}_L{wc.lane}_R{wc.read}_001.*"),
     output:
-        gz=f"{config['results_dir']}/gzipped/{{sample}}_L{{lane}}_R{{read}}_001.fastq.gz"
+        gz=temp(f"{config['results_dir']}/gzipped/{{sample}}_L{{lane}}_R{{read}}_001.fastq.gz")
     threads: 2
     shell: r"""
         mkdir -p $(dirname {output.gz})
