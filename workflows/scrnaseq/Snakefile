@@ -50,6 +50,7 @@ rule all:
         f"{os.path.abspath(config['results_dir'])}/combined_preprocessing.html",
         f"{os.path.abspath(config['results_dir'])}/combined_processed_adata.h5ad",
 
+
 def get_reference_file():
     if config['organism'] == 'human':
         # return "/ref/cellranger/refdata-gex-GRCh38-2024-A"
@@ -217,7 +218,7 @@ rule make_h5ad:
     script: f"{config['workflow_dir']}/workflows/scrnaseq/convert_10x_directory_to_h5ad.py"
 
 
-rule preprocess_scrna_pt1:  # Initial QC/Filtering
+rule preprocess_scrna:  # Initial QC/Filtering
     container:
          f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
     shadow: "copy-minimal"  # Required when using .sif
@@ -234,6 +235,8 @@ rule preprocess_scrna_pt1:  # Initial QC/Filtering
         outlier_threshold=config['outlier_threshold'],  # Parameter for MAD-based outlier detection
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/{{sample}}_preprocessing.log"
+    # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+    retries: 5
     shell:
         """
         export SNAKEMAKE_H5AD_FILE={input.input_file}
@@ -259,7 +262,7 @@ rule combine_samples:  # Combine multiple .h5ad files into a single file if ther
     script: f"{config['workflow_dir']}/workflows/scrnaseq/concatenate_h5ads.py"
 
 
-rule preprocess_combined_scrna_pt1:  # Final basic analysis (HVGs, PCA, UMAP, etc.)
+rule preprocess_combined_scrna:  # Final basic analysis (HVGs, PCA, UMAP, etc.)
     container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
     shadow: "copy-minimal"  # Required when using .sif
     conda:
@@ -275,6 +278,8 @@ rule preprocess_combined_scrna_pt1:  # Final basic analysis (HVGs, PCA, UMAP, et
         n_hvgs=config['n_hvgs'] # Number of highly variable genes to select
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/combined_preprocessing.log"
+    # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+    retries: 5
     shell:
         """
         export SNAKEMAKE_H5AD_FILE={input.input_file}
