@@ -100,6 +100,7 @@ rule merge_lanes:
         cat {input.r2} > {output.r2}
         """
 
+
 rule fastp:
     container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
     shadow: "copy-minimal"  # Required when using .sif
@@ -122,6 +123,36 @@ rule fastp:
         fastp -i {input.r1} -I {input.r2} \
               -o {output.r1} -O {output.r2} \
               --json {output.json} --html {output.html} \
+              -R "{wildcards.sample} Report" \
               --detect_adapter_for_pe \
               --thread {threads} {params.low_complexity} > {log} 2>&1
+        """
+
+
+rule fastp_report_only:
+    container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    input:
+        r1=f"{config['results_dir']}/merged/{{sample}}_L001_R1_001.fastq.gz",
+        r2=f"{config['results_dir']}/merged/{{sample}}_L001_R2_001.fastq.gz",
+    output:
+        json=f"{get_fastp_dir()}/{{sample}}_report.json",
+        html=f"{get_fastp_dir()}/{{sample}}_report.html",
+    log:
+        f"{get_fastp_dir()}/{{sample}}.log"
+    threads: 8
+    shell:
+        """
+        touch {log}
+        fastp -i {input.r1} -I {input.r2} \
+              --json {output.json} --html {output.html} \
+              -R "{wildcards.sample} Report" \
+              --disable_trim_poly_g \
+              --disable_adapter_trimming \
+              --disable_length_filtering \
+              --disable_quality_filtering \
+              --detect_adapter_for_pe \
+              --overrepresentation_analysis \
+              --stdout /dev/null \
+              --thread {threads} > {log} 2>&1
         """

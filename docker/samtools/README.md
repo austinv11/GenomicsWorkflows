@@ -1,13 +1,14 @@
-# MultiQC
-This image contains installations for MultiQC, ...
-
-This is intended to perform standardized QC Reports for various genomics.
+# Samtools, Bcftools, and Bedtools Docker Image
+This image contains installations for samtools, bcftools, and bedtools.
 
 
 ## Usage:
-...
+Simply enter a shell to have access to all three tools:
+```bash
+docker run -it --rm austinv11/samtools:latest
+```
 
 ## Tool Versions
-- fastplong: 0.2.2
-- fastp: 0.24.0
-- MultiQC: 1.29
+- samtools: `1.20`
+- bcftools: `1.20`
+- bedtools: `2.31.1`

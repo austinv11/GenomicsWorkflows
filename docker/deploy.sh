@@ -28,25 +28,60 @@ apptainer build "$(pwd)/samtools/samtools_image.sif" "docker-archive://$(pwd)/sa
 rm -f "$(pwd)/samtools/samtools_images.tar"
 
 # Generate conda environments on-the-fly using conda-lock
-rm -rf "$(pwd)/generated"
-mkdir -p "$(pwd)/generated"
-conda-lock -f "$(pwd)/../conda/scanpy-environment.yml" \
-  --platform linux-64 \
-  --kind explicit \
-  --filename-template "$(pwd)/generated/scanpy-environment.lock"
+generate_conda_docker_images() {
+  local conda_dir="${1:-$(pwd)/../conda}"
+  local generated_dir="$(pwd)/generated"
+  rm -rf "$generated_dir"
+  mkdir -p "$generated_dir"
 
-# Generate the Dockerfile for the scanpy environment
-echo "FROM continuumio/miniconda3:latest AS builder" > "$(pwd)/generated/Dockerfile"
-echo "COPY scanpy-environment.lock /tmp/" >> "$(pwd)/generated/Dockerfile"
-echo "RUN conda create -p /opt/env --copy --file /tmp/scanpy-environment.lock" >> "$(pwd)/generated/Dockerfile"
-echo "FROM debian:bookworm-slim" >> "$(pwd)/generated/Dockerfile"
-echo "COPY --from=builder /opt/env /opt/env" >> "$(pwd)/generated/Dockerfile"
-echo "ENV PATH=/opt/env/bin:\$PATH" >> "$(pwd)/generated/Dockerfile"
-# Build the scanpy environment Docker image
-$docker_exec build -t scanpy-environment "$(pwd)/generated/"
-$docker_exec save -o "$(pwd)/generated/scanpy-environment.tar" "$docker_user/scanpy-environment:latest"
-# Convert the Docker image to a Singularity image file
-apptainer build "$(pwd)/generated/scanpy-environment.sif" "docker-archive://$(pwd)/generated/scanpy-environment.tar"
-rm -f "$(pwd)/generated/scanpy-environment.tar"
-# Clean up the generated directory
-rm -f "$(pwd)/generated/Dockerfile"
+  for env_file in "$conda_dir"/*.yml; do
+    [ -e "$env_file" ] || continue
+    env_name=$(basename "$env_file" .yml)
+    lock_file="$generated_dir/${env_name}.lock"
+    dockerfile="$generated_dir/Dockerfile.${env_name}"
+
+    conda-lock -f "$env_file" \
+      --platform linux-64 \
+      --kind explicit \
+      --filename-template "$lock_file"
+
+    echo "FROM continuumio/miniconda3:latest AS builder" > "$dockerfile"
+    echo "COPY ${env_name}.lock /tmp/" >> "$dockerfile"
+    echo "RUN conda create -p /opt/env --copy --file /tmp/${env_name}.lock" >> "$dockerfile"
+    echo "FROM debian:bookworm-slim" >> "$dockerfile"
+    echo "COPY --from=builder /opt/env /opt/env" >> "$dockerfile"
+    echo "ENV PATH=/opt/env/bin:\$PATH" >> "$dockerfile"
+
+    cp "$lock_file" "$generated_dir/"
+    $docker_exec build -t "${env_name}-environment" -f "$dockerfile" "$generated_dir/"
+    $docker_exec save -o "$generated_dir/${env_name}-environment.tar" "$docker_user/${env_name}-environment:latest"
+    apptainer build "$generated_dir/${env_name}-environment.sif" "docker-archive://$generated_dir/${env_name}-environment.tar"
+    rm -f "$generated_dir/${env_name}-environment.tar" "$dockerfile" "$lock_file"
+  done
+}
+
+generate_conda_docker_images "$(pwd)/../conda"
+
+
+#rm -rf "$(pwd)/generated"
+#mkdir -p "$(pwd)/generated"
+#conda-lock -f "$(pwd)/../conda/scanpy-environment.yml" \
+#  --platform linux-64 \
+#  --kind explicit \
+#  --filename-template "$(pwd)/generated/scanpy-environment.lock"
+#
+## Generate the Dockerfile for the scanpy environment
+#echo "FROM continuumio/miniconda3:latest AS builder" > "$(pwd)/generated/Dockerfile"
+#echo "COPY scanpy-environment.lock /tmp/" >> "$(pwd)/generated/Dockerfile"
+#echo "RUN conda create -p /opt/env --copy --file /tmp/scanpy-environment.lock" >> "$(pwd)/generated/Dockerfile"
+#echo "FROM debian:bookworm-slim" >> "$(pwd)/generated/Dockerfile"
+#echo "COPY --from=builder /opt/env /opt/env" >> "$(pwd)/generated/Dockerfile"
+#echo "ENV PATH=/opt/env/bin:\$PATH" >> "$(pwd)/generated/Dockerfile"
+## Build the scanpy environment Docker image
+#$docker_exec build -t scanpy-environment "$(pwd)/generated/"
+#$docker_exec save -o "$(pwd)/generated/scanpy-environment.tar" "$docker_user/scanpy-environment:latest"
+## Convert the Docker image to a Singularity image file
+#apptainer build "$(pwd)/generated/scanpy-environment.sif" "docker-archive://$(pwd)/generated/scanpy-environment.tar"
+#rm -f "$(pwd)/generated/scanpy-environment.tar"
+## Clean up the generated directory
+#rm -f "$(pwd)/generated/Dockerfile"

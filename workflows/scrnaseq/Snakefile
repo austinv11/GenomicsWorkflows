@@ -72,6 +72,10 @@ def get_flex_probeset():
         raise ValueError("Invalid organism specified. Must be either 'human' or 'mouse'.")
 
 
+def get_merged_dir():
+    return os.path.abspath(f"{config['results_dir']}/merged")
+
+
 def get_fastp_dir():
     return os.path.abspath(f"{config['results_dir']}/fastp")
 
@@ -87,12 +91,12 @@ if config['mode'] == 'three-prime':
         container: f"{config['workflow_dir']}/docker/10xrangers/10x_ranger_image.sif"
         shadow: "copy-minimal"  # Required when using .sif
         input:
-            r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
-            r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+            r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+            r2=f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz",
         output:
             cellranger_output=directory(f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}")
         params:
-            fastq_dir=get_fastp_dir(),
+            merged_dir=get_merged_dir(),
             reference=get_reference_file(),
             sample_name=lambda wc: strip_s_suffix(wc.sample)
         log:
@@ -105,7 +109,7 @@ if config['mode'] == 'three-prime':
             --id {wildcards.sample} \
             --output-dir {output.cellranger_output} \
             --transcriptome {params.reference} \
-            --fastqs {params.fastq_dir} \
+            --fastqs {params.merged_dir} \
             --sample {params.sample_name} \
             --create-bam true \
             --localcores {threads}
@@ -115,12 +119,12 @@ elif config['mode'] == 'flex':
         container: f"{config['workflow_dir']}/docker/10xrangers/10x_ranger_image.sif"
         shadow: "copy-minimal"  # Required when using .sif
         input:
-            r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
-            r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+            r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+            r2=f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz",
         output:
             multi_csv_input="multi_csv_input.csv"
         params:
-            fastq_dir=get_fastp_dir(),
+            merged_dir=get_merged_dir(),
             reference=get_reference_file(),
             probeset=get_flex_probeset(),
             sample_name=lambda wc: strip_s_suffix(wc.sample)
@@ -133,7 +137,7 @@ elif config['mode'] == 'flex':
             echo "probe-set,{params.probeset}" >> {output.multi_csv_input}
             echo "[libraries]" >> {output.multi_csv_input}
             echo "fastq-id,{params.sample_name}" >> {output.multi_csv_input}
-            echo "fastqs,{params.fastq_dir}" >> {output.multi_csv_input}
+            echo "fastqs,{params.merged_dir}" >> {output.multi_csv_input}
             echo "feature_types,Gene Expression" >> {output.multi_csv_input}
             """
 
@@ -141,15 +145,13 @@ elif config['mode'] == 'flex':
         container: f"{config['workflow_dir']}/docker/10xrangers/10x_ranger_image.sif"
         shadow: "copy-minimal"  # Required when using .sif
         input:
-            r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
-            r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+            r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+            r2=f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz",
             multi_csv_input="multi_csv_input.csv"
         output:
             cellranger_output=directory(f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}")
         log:
             f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}/_log"
-        # params:
-        #     fastq_dir=get_fastp_dir(),
         threads: 16
         shell:
             """
@@ -163,13 +165,16 @@ elif config['mode'] == 'flex':
 else:
     raise ValueError("Invalid mode specified. Must be either 'three-prime' or 'flex'.")
 
+
 rule multiqc:
     container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
     shadow: "copy-minimal"  # Required when using .sif
     input:
         tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
-        r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
-        r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+        r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+        r2=f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+        fastp_report_json=f"{get_fastp_dir()}/{{sample}}_report.json",
+        fastp_report_html=f"{get_fastp_dir()}/{{sample}}_report.html"
     output:
         outdir=directory(f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/"),
         outreport=f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/multiqc_report.html"
@@ -211,6 +216,7 @@ rule make_h5ad:
         output_file=temp(f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_converted_adata.h5ad")
     script: f"{config['workflow_dir']}/workflows/scrnaseq/convert_10x_directory_to_h5ad.py"
 
+
 rule preprocess_scrna_pt1:  # Initial QC/Filtering
     container:
          f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
@@ -237,6 +243,7 @@ rule preprocess_scrna_pt1:  # Initial QC/Filtering
         jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
         """
 
+
 rule combine_samples:  # Combine multiple .h5ad files into a single file if there are multiple samples
     container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
     shadow: "copy-minimal"  # Required when using .sif
@@ -250,6 +257,7 @@ rule combine_samples:  # Combine multiple .h5ad files into a single file if ther
     output:
         combined_h5ad=temp(f"{os.path.abspath(config['results_dir'])}/temp_combined_processed_adata.h5ad")
     script: f"{config['workflow_dir']}/workflows/scrnaseq/concatenate_h5ads.py"
+
 
 rule preprocess_combined_scrna_pt1:  # Final basic analysis (HVGs, PCA, UMAP, etc.)
     container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
