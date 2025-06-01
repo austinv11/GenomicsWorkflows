@@ -36,9 +36,10 @@ generate_conda_docker_images() {
 
   for env_file in "$conda_dir"/*.yml; do
     [ -e "$env_file" ] || continue
-    env_name=$(basename "$env_file" .yml)
+    env_name=$(basename "$env_file")
+    env_name="${env_name%.yml}" # Remove the .yml extension
     lock_file="$generated_dir/${env_name}.lock"
-    dockerfile="$generated_dir/Dockerfile.${env_name}"
+    dockerfile="$generated_dir/Dockerfile"
 
     conda-lock -f "$env_file" \
       --platform linux-64 \
@@ -52,8 +53,7 @@ generate_conda_docker_images() {
     echo "COPY --from=builder /opt/env /opt/env" >> "$dockerfile"
     echo "ENV PATH=/opt/env/bin:\$PATH" >> "$dockerfile"
 
-    cp "$lock_file" "$generated_dir/"
-    $docker_exec build -t "${env_name}" -f "$dockerfile" "$generated_dir/"
+    $docker_exec build -t "${env_name}" "$generated_dir/"
     $docker_exec save -o "$generated_dir/${env_name}.tar" "$docker_user/${env_name}:latest"
     apptainer build "$generated_dir/${env_name}.sif" "docker-archive://$generated_dir/${env_name}.tar"
     rm -f "$generated_dir/${env_name}.tar" "$dockerfile" "$lock_file"

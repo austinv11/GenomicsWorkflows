@@ -50,6 +50,9 @@ def get_samples():
         re.sub(r"_L\d{3}(_R[12].*)?$", "", Path(f).stem)   # strip lane & read
                    for f in glob.glob(f"{config['fastq_dir']}/*_R1_*.f*q*")})
 
+def get_merged_dir():
+    return os.path.abspath(f"{config['results_dir']}/merged")
+
 
 def get_fastp_dir():
     return os.path.abspath(f"{config['results_dir']}/fastp")
@@ -92,8 +95,8 @@ rule merge_lanes:
             lane=[Path(f).stem.split("_L")[1][:3] for f in glob.glob(f"{config['fastq_dir']}/{wc.sample}_L*_R2_*.f*q*")]
         )
     output:
-        r1=temp(f"{config['results_dir']}/merged/{{sample}}_L001_R1_001.fastq.gz"),
-        r2=temp(f"{config['results_dir']}/merged/{{sample}}_L001_R2_001.fastq.gz")
+        r1=temp(f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz"),
+        r2=temp(f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz")
     shell:
         """
         cat {input.r1} > {output.r1}
@@ -105,8 +108,8 @@ rule fastp:
     container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
     shadow: "copy-minimal"  # Required when using .sif
     input:
-        r1=f"{config['results_dir']}/merged/{{sample}}_L001_R1_001.fastq.gz",
-        r2=f"{config['results_dir']}/merged/{{sample}}_L001_R2_001.fastq.gz",
+        r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+        r2=f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz",
     output:
         r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
         r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
@@ -133,8 +136,8 @@ rule fastp_report_only:
     container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
     shadow: "copy-minimal"  # Required when using .sif
     input:
-        r1=f"{config['results_dir']}/merged/{{sample}}_L001_R1_001.fastq.gz",
-        r2=f"{config['results_dir']}/merged/{{sample}}_L001_R2_001.fastq.gz",
+        r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+        r2=f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz",
     output:
         json=f"{get_fastp_dir()}/{{sample}}_report.json",
         html=f"{get_fastp_dir()}/{{sample}}_report.html",
