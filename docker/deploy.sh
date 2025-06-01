@@ -53,10 +53,10 @@ generate_conda_docker_images() {
     echo "ENV PATH=/opt/env/bin:\$PATH" >> "$dockerfile"
 
     cp "$lock_file" "$generated_dir/"
-    $docker_exec build -t "${env_name}-environment" -f "$dockerfile" "$generated_dir/"
-    $docker_exec save -o "$generated_dir/${env_name}-environment.tar" "$docker_user/${env_name}-environment:latest"
-    apptainer build "$generated_dir/${env_name}-environment.sif" "docker-archive://$generated_dir/${env_name}-environment.tar"
-    rm -f "$generated_dir/${env_name}-environment.tar" "$dockerfile" "$lock_file"
+    $docker_exec build -t "${env_name}" -f "$dockerfile" "$generated_dir/"
+    $docker_exec save -o "$generated_dir/${env_name}.tar" "$docker_user/${env_name}:latest"
+    apptainer build "$generated_dir/${env_name}.sif" "docker-archive://$generated_dir/${env_name}.tar"
+    rm -f "$generated_dir/${env_name}.tar" "$dockerfile" "$lock_file"
   done
 }
 
