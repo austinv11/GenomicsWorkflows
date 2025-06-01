@@ -188,7 +188,8 @@ rule multiqc:
 rule copy_notebook:
     input:
         notebook1 = f"{config['workflow_dir']}/notebooks/scrnaseq_preprocessing_pt1.ipynb",
-        notebook2 = f"{config['workflow_dir']}/notebooks/scrnaseq_preprocessing_pt2.ipynb"
+        notebook2 = f"{config['workflow_dir']}/notebooks/scrnaseq_preprocessing_pt2.ipynb",
+        notebook3 = f"{config['workflow_dir']}/notebooks/doublet_detection.ipynb"
     output:
         temp_notebook1 = temp(
             f"{os.path.abspath(config['results_dir'])}/notebooks/scrnaseq_preprocessing_pt1.ipynb"
@@ -196,14 +197,18 @@ rule copy_notebook:
         temp_notebook2 = temp(
             f"{os.path.abspath(config['results_dir'])}/notebooks/scrnaseq_preprocessing_pt2.ipynb"
         ),
+        temp_notebook3 = temp(
+            f"{os.path.abspath(config['results_dir'])}/notebooks/doublet_detection.ipynb"
+        )
     shell:
         """
         mkdir -p $(dirname {output.temp_notebook1})
         cp {input.notebook1} {output.temp_notebook1}
         mkdir -p $(dirname {output.temp_notebook2})
         cp {input.notebook2} {output.temp_notebook2}
+        mkdir -p $(dirname {output.temp_notebook3})
+        cp {input.notebook3} {output.temp_notebook3}
         """
-
 
 rule make_h5ad:
     container:
@@ -262,6 +267,29 @@ rule combine_samples:  # Combine multiple .h5ad files into a single file if ther
     script: f"{config['workflow_dir']}/workflows/scrnaseq/concatenate_h5ads.py"
 
 
+rule doublet_detection:  # Detect doublets using scDblFinder
+    container: f"{config['workflow_dir']}/docker/generated/scDblFinder-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scDblFinder-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['results_dir'])}/temp_combined_processed_adata.h5ad",
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/doublet_detection.ipynb"
+    output:
+        output_file=temp(f"{os.path.abspath(config['results_dir'])}/doublet_table.csv"),
+        notebook_out=f"{os.path.abspath(config['results_dir'])}/doublet_detection.ipynb",
+        notebook_html=f"{os.path.abspath(config['results_dir'])}/doublet_detection.html"
+    log:
+        f"{os.path.abspath(config['results_dir'])}/logs/doublet_detection.log"
+    retries: 5
+    shell:
+        """
+        export SNAKEMAKE_INPUT_H5AD={input.input_file}
+        export SNAKEMAKE_OUTPUT_TABLE={output.output_file}
+        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+        """
+
 rule preprocess_combined_scrna:  # Final basic analysis (HVGs, PCA, UMAP, etc.)
     container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
     shadow: "copy-minimal"  # Required when using .sif
@@ -269,7 +297,8 @@ rule preprocess_combined_scrna:  # Final basic analysis (HVGs, PCA, UMAP, etc.)
         f"{config['workflow_dir']}/conda/scanpy-environment.yml"
     input:
         input_file=f"{os.path.abspath(config['results_dir'])}/temp_combined_processed_adata.h5ad",
-        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/scrnaseq_preprocessing_pt2.ipynb"
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/scrnaseq_preprocessing_pt2.ipynb",
+        doublet_file=f"{os.path.abspath(config['results_dir'])}/doublet_table.csv"
     output:
         notebook_out=f"{os.path.abspath(config['results_dir'])}/combined_preprocessing.ipynb",
         html_out=f"{os.path.abspath(config['results_dir'])}/combined_preprocessing.html",
@@ -285,6 +314,7 @@ rule preprocess_combined_scrna:  # Final basic analysis (HVGs, PCA, UMAP, etc.)
         export SNAKEMAKE_H5AD_FILE={input.input_file}
         export SNAKEMAKE_N_HVGS={params.n_hvgs}
         export SNAKEMAKE_PROCESSED_FILENAME={output.output_file}
+        export SNAKEMAKE_DOUBLET_FILE={input.doublet_file}
         papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
         jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
         """
