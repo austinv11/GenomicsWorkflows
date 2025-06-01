@@ -11,4 +11,5 @@ docker run -it --rm austinv11/samtools:latest
 ## Tool Versions
 - samtools: `1.20`
 - bcftools: `1.20`
-- bedtools: `2.31.1`
+
+[//]: # (- bedtools: `2.31.1`) 
