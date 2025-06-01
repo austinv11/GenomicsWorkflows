@@ -116,13 +116,12 @@ rule fastp:
         json=f"{get_fastp_dir()}/{{sample}}.json",
         html=f"{get_fastp_dir()}/{{sample}}.html",
     log:
-        f"{get_fastp_dir()}/{{sample}}.log"
+        touch(f"{get_fastp_dir()}/{{sample}}.log")
     threads: 8
     params:
         low_complexity = "--low_complexity_filter" if config["low_complexity_filter"] else ""
     shell:
         """
-        touch {log}
         fastp -i {input.r1} -I {input.r2} \
               -o {output.r1} -O {output.r2} \
               --json {output.json} --html {output.html} \
@@ -139,14 +138,13 @@ rule fastp_report_only:
         r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
         r2=f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz",
     output:
-        json=f"{get_fastp_dir()}/{{sample}}_report.json",
-        html=f"{get_fastp_dir()}/{{sample}}_report.html",
+        json=f"{get_fastp_dir()}/qc/{{sample}}_report.json",
+        html=f"{get_fastp_dir()}/qc/{{sample}}_report.html",
     log:
-        f"{get_fastp_dir()}/{{sample}}.log"
+        touch(f"{get_fastp_dir()}/qc/{{sample}}.log")
     threads: 8
     shell:
         """
-        touch {log}
         fastp -i {input.r1} -I {input.r2} \
               --json {output.json} --html {output.html} \
               -R "{wildcards.sample} Report" \

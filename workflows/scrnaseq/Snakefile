@@ -174,8 +174,8 @@ rule multiqc:
         tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
         r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
         r2=f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz",
-        fastp_report_json=f"{get_fastp_dir()}/{{sample}}_report.json",
-        fastp_report_html=f"{get_fastp_dir()}/{{sample}}_report.html"
+        fastp_report_json=f"{get_fastp_dir()}/qc/{{sample}}_report.json",
+        fastp_report_html=f"{get_fastp_dir()}/qc/{{sample}}_report.html"
     output:
         outdir=directory(f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/"),
         outreport=f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/multiqc_report.html"
