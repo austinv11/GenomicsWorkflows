@@ -49,6 +49,12 @@ generate_conda_docker_images() {
     echo "FROM continuumio/miniconda3:latest AS builder" > "$dockerfile"
     echo "COPY ${env_name}.lock /tmp/" >> "$dockerfile"
     echo "RUN conda create -p /opt/env --copy --file /tmp/${env_name}.lock" >> "$dockerfile"
+    # FIXME: Temporary fix for some packages not being updated in conda
+    # If scdblfinder in the environment name, manually install with biocmanager in R
+    if echo "$env_name" | grep -q "scdblfinder"; then
+      # Install the development version of plger/scDblFinder
+      echo "RUN R -e \"BiocManager::install('plger/scDblFinder', force = TRUE)\"" >> "$dockerfile"
+    fi
     echo "FROM debian:bookworm-slim" >> "$dockerfile"
     echo "COPY --from=builder /opt/env /opt/env" >> "$dockerfile"
     echo "ENV PATH=/opt/env/bin:\$PATH" >> "$dockerfile"
