@@ -1,0 +1,101 @@
+"""
+Workflows for cell type assignment from single-cell RNA-seq data for several packages:
+- CellAssign
+- SingleR
+- Garnett
+- ProjectTILs
+"""
+
+import os
+
+
+rule prepare_garnett:  # Prepare Garnett environment
+    input:
+        notebook1 = f"{config['workflow_dir']}/notebooks/garnett_celltype_assignment.ipynb",
+        notebook2 = f"{config['workflow_dir']}/notebooks/garnett_train_classifier.ipynb",
+    output:
+        temp_notebook1 = temp(
+            f"{os.path.abspath(config['results_dir'])}/notebooks/garnett_celltype_assignment.ipynb"
+        ),
+        temp_notebook2 = temp(
+            f"{os.path.abspath(config['results_dir'])}/notebooks/garnett_train_classifier.ipynb"
+        )
+    shell:
+        """
+        mkdir -p $(dirname {output.temp_notebook1})
+        cp {input.notebook1} {output.temp_notebook1}
+        mkdir -p $(dirname {output.temp_notebook2})
+        cp {input.notebook2} {output.temp_notebook2}
+        """
+
+rule train_garnett_classifier:  # Train Garnett classifier
+    container: f"{config['workflow_dir']}/docker/generated/garnett-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/garnett-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/garnett_train_classifier.ipynb",
+        marker_file=f"{os.path.abspath(config['marker_file'])}",
+    output:
+        notebook_out=f"{os.path.abspath(config['results_dir'])}/garnett_train_classifier.ipynb",
+        html_out=f"{os.path.abspath(config['results_dir'])}/garnett_train_classifier.html",
+        classifier_file=f"{os.path.abspath(config['results_dir'])}/garnett_classifier.RDS"
+    params:
+        organism=config["organism"],  # e.g., "human", "mouse"
+    log:
+        f"{os.path.abspath(config['results_dir'])}/logs/combined_preprocessing.log"
+    # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+    retries: 5
+    shell:
+        """
+        export SNAKEMAKE_MARKER_LIST={input.marker_file}
+        export SNAKEMAKE_CLASSIFIER_FILE={output.classifier_file}
+        export SNAKEMAKE_H5AD_INPUT={input.input_file}
+        export SNAKEMAKE_ORGANISM={params.organism}
+        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+        """
+
+
+rule garnett_assignment:  # Garnett cell type assignment
+    container: f"{config['workflow_dir']}/docker/generated/garnett-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/garnett-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/garnett_celltype_assignment.ipynb",
+        classifier_file=f"{os.path.abspath(config['garnett_classifier'])}"
+    output:
+        notebook_out=f"{os.path.abspath(config['results_dir'])}/garnett_celltype_assignment.ipynb",
+        html_out=f"{os.path.abspath(config['results_dir'])}/garnett_celltype_assignment.html",
+        output_file=f"{os.path.abspath(config['results_dir'])}/garnett_assignments.csv"
+    params:
+        organism=config["organism"]  # e.g., "human", "mouse"
+    log:
+        f"{os.path.abspath(config['results_dir'])}/logs/combined_preprocessing.log"
+    # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+    retries: 5
+    shell:
+        """
+        export SNAKEMAKE_CLASSIFIER={input.classifier_file}
+        export SNAKEMAKE_H5AD_INPUT={input.input_file}
+        export SNAKEMAKE_OUTPUT_FILE={output.output_file}
+        export SNAKEMAKE_ORGANISM={params.organism}
+        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+        """
+
+
+rule insert_garnett_assignments:
+    container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata.h5ad",
+        assignments=f"{os.path.abspath(config['results_dir'])}/garnett_assignments.csv"
+    output:
+        output_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata_with_garnett.h5ad"
+    script: f"{config['workflow_dir']}/workflows/celltype_assignment/inject_assignments.py"

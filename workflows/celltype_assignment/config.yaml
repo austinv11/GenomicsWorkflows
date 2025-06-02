@@ -1,0 +1,14 @@
+# Output directories
+h5ad_file: "combined_processed_adata.h5ad"
+inputs_dir: "results"
+results_dir: "results"
+
+# Reference and mode configuration
+marker_file: "marker_genes.csv"  # Path to marker genes file (format is dependent on method)
+organism: "human"  # Options: human, mouse
+
+# Tool specific configurations
+garnett_classifier: "garnett_classifier.RDS"  # Garnett classifier file
+
+# Where these workflows are installed
+workflow_dir: "/workdir/aav4003/GenomicsWorkflows"
