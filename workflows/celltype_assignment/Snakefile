@@ -8,6 +8,61 @@ Workflows for cell type assignment from single-cell RNA-seq data for several pac
 
 import os
 
+## CellAssign
+
+rule prepare_cellassign:  # Prepare CellAssign environment
+    input:
+        notebook=f"{config['workflow_dir']}/notebooks/cellassign_celltype_assignment.ipynb",
+    output:
+        temp_notebook=temp(
+            f"{os.path.abspath(config['results_dir'])}/notebooks/cellassign_celltype_assignment.ipynb"
+        )
+    shell:
+        """
+        mkdir -p $(dirname {output.temp_notebook})
+        cp {input.notebook} {output.temp_notebook}
+        """
+
+rule cellassign_assignment:  # CellAssign cell type assignment
+    container: f"{config['workflow_dir']}/docker/generated/scvi-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scvi-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/cellassign_celltype_assignment.ipynb",
+        marker_file=f"{os.path.abspath(config['marker_file'])}",
+    output:
+        notebook_out=f"{os.path.abspath(config['results_dir'])}/cellassign_celltype_assignment.ipynb",
+        html_out=f"{os.path.abspath(config['results_dir'])}/cellassign_celltype_assignment.html",
+        output_file=f"{os.path.abspath(config['results_dir'])}/cellassign_assignments.csv"
+    log:
+        f"{os.path.abspath(config['results_dir'])}/logs/combined_preprocessing.log"
+    # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+    retries: 5
+    shell:
+        """
+        export SNAKEMAKE_MARKER_LIST={input.marker_file}
+        export SNAKEMAKE_H5AD_INPUT={input.input_file}
+        export SNAKEMAKE_OUTPUT_FILE={output.output_file}
+        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+        """
+
+rule insert_cellassign_assignments:  # Insert CellAssign assignments into AnnData
+    container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata.h5ad",
+        assignments=f"{os.path.abspath(config['results_dir'])}/cellassign_assignments.csv"
+    output:
+        output_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata_with_cellassign.h5ad"
+    script: f"{config['workflow_dir']}/workflows/celltype_assignment/inject_assignments.py"
+
+
+## Garnett
 
 rule prepare_garnett:  # Prepare Garnett environment
     input:
