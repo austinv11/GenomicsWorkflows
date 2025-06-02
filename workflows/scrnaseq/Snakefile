@@ -268,10 +268,10 @@ rule combine_samples:  # Combine multiple .h5ad files into a single file if ther
 
 
 rule doublet_detection:  # Detect doublets using scDblFinder
-    container: f"{config['workflow_dir']}/docker/generated/scDblFinder-environment.sif"
+    container: f"{config['workflow_dir']}/docker/generated/scdblfinder-environment.sif"
     shadow: "copy-minimal"  # Required when using .sif
     conda:
-        f"{config['workflow_dir']}/conda/scDblFinder-environment.yml"
+        f"{config['workflow_dir']}/conda/scdblfinder-environment.yml"
     input:
         input_file=f"{os.path.abspath(config['results_dir'])}/temp_combined_processed_adata.h5ad",
         notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/doublet_detection.ipynb"
