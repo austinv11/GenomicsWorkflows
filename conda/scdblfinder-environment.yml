@@ -12,3 +12,4 @@ dependencies:
   - jupyter
   - papermill
   - r-biocmanager
+  - r-remotes
