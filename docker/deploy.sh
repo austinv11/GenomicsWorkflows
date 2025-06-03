@@ -55,7 +55,7 @@ generate_conda_docker_images() {
     if echo "$env_name" | grep -q "scdblfinder"; then
       # Install the development version of plger/scDblFinder
       # Overwrite domain resolution for Bioconductor packages in the hosts file
-      echo "RUN conda run -p /opt/env R -e \"options(BioC_mirror=Sys.getenv('BIOC_MIRROR')); BiocManager::install('plger/scDblFinder', force = TRUE, ask = FALSE, update = TRUE)\"" >> "$dockerfile"
+      echo "RUN conda run -p /opt/env R -e \"options(BioC_mirror=Sys.getenv('BIOC_MIRROR')); BiocManager::install('plger/scDblFinder', force = TRUE, ask = FALSE, update = FALSE)\"" >> "$dockerfile"
     fi
     echo "FROM debian:bookworm-slim" >> "$dockerfile"
     echo "COPY --from=builder /opt/env /opt/env" >> "$dockerfile"

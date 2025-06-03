@@ -9,6 +9,7 @@ organism: "human"  # Options: human, mouse
 
 # Tool specific configurations
 garnett_classifier: "garnett_classifier.RDS"  # Garnett classifier file
+celltype_column: "celltype"  # Column name in the marker file that contains cell type labels when transfer labelling
 
 # Where these workflows are installed
 workflow_dir: "/workdir/aav4003/GenomicsWorkflows"

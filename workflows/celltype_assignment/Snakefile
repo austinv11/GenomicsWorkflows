@@ -98,6 +98,7 @@ rule train_garnett_classifier:  # Train Garnett classifier
         classifier_file=f"{os.path.abspath(config['results_dir'])}/garnett_classifier.RDS"
     params:
         organism=config["organism"],  # e.g., "human", "mouse"
+        celltype_column=config["celltype_column"],  # e.g., "cell_type"
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/combined_preprocessing.log"
     # Papermill can sometimes compete with ports if there are multiple papermill jobs running
@@ -108,6 +109,7 @@ rule train_garnett_classifier:  # Train Garnett classifier
         export SNAKEMAKE_CLASSIFIER_FILE={output.classifier_file}
         export SNAKEMAKE_H5AD_INPUT={input.input_file}
         export SNAKEMAKE_ORGANISM={params.organism}
+        export SNAKEMAKE_CELLTYPE_COLUMN={params.celltype_column}
         papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
         jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
         """
@@ -127,7 +129,7 @@ rule garnett_assignment:  # Garnett cell type assignment
         html_out=f"{os.path.abspath(config['results_dir'])}/garnett_celltype_assignment.html",
         output_file=f"{os.path.abspath(config['results_dir'])}/garnett_assignments.csv"
     params:
-        organism=config["organism"]  # e.g., "human", "mouse"
+        organism=config["organism"],  # e.g., "human", "mouse"
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/combined_preprocessing.log"
     # Papermill can sometimes compete with ports if there are multiple papermill jobs running
