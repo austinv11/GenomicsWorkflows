@@ -218,6 +218,7 @@ rule make_h5ad:
         f"{config['workflow_dir']}/conda/scanpy-environment.yml"
     input:
         tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",
+        sample_name=lambda wc: strip_s_suffix(wc.sample)
     output:
         output_file=temp(f"{os.path.abspath(config['results_dir'])}/notebooks/{{sample}}_converted_adata.h5ad")
     script: f"{config['workflow_dir']}/workflows/scrnaseq/convert_10x_directory_to_h5ad.py"
