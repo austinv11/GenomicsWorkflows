@@ -18,7 +18,7 @@ tools:
 - `spaceranger_mouse_reference`: Downloads and extracts the mouse reference for spaceranger.
 - `cellranger_human_and_mouse_reference`: Downloads and extracts the combined human and mouse reference for cellranger.
 - `cellranger_human_flex_probe_set`: Downloads and extracts the human flex probe set for cellranger.
-- `cellranger_mouse_flex_probe_set`: Downloads and extracts the human flex probe set for spaceranger.
+- `cellranger_mouse_flex_probe_set`: Downloads and extracts the mouse flex probe set for spaceranger.
 - `spaceranger_human_probe_set`: Downloads and extracts the human probe set for spaceranger.
 - `spaceranger_mouse_probe_set`: Downloads and extracts the mouse probe set for spaceranger.
 
