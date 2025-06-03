@@ -1,7 +1,6 @@
 channels:
   - conda-forge
   - bioconda
-  - r
 
 dependencies:
   - r-base=4.4
@@ -13,4 +12,4 @@ dependencies:
   - bioconductor-org.hs.eg.db~=3.20.0
   - bioconductor-org.mm.eg.db~=3.20.0
   - r-garnett~=0.2.8
-  - zellkonverter
+  - bioconductor-zellkonverter~=1.16.0
