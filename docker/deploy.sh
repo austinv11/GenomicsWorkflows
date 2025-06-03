@@ -53,7 +53,7 @@ generate_conda_docker_images() {
     # If scdblfinder in the environment name, manually install with biocmanager in R
     if echo "$env_name" | grep -q "scdblfinder"; then
       # Install the development version of plger/scDblFinder
-      echo "RUN conda run -p /opt/env R -e \"BiocManager::install('plger/scDblFinder', force = TRUE)\"" >> "$dockerfile"
+      echo "RUN conda run -p /opt/env R -e \"BiocManager::install('plger/scDblFinder', force = TRUE, ask = FALSE, update = TRUE)\"" >> "$dockerfile"
     fi
     echo "FROM debian:bookworm-slim" >> "$dockerfile"
     echo "COPY --from=builder /opt/env /opt/env" >> "$dockerfile"
