@@ -4,7 +4,7 @@ import os
 
 tenx_outdir = snakemake.input.tenx_output
 outfile = snakemake.output.output_file
-sample_name = snakemake.input.sample_name
+sample_name = snakemake.params.sample_name
 
 # Find the 10X output directory containing the `filtered_feature_bc_matrix` directory
 # Recursively search for the directory
