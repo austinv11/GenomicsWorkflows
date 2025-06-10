@@ -4,7 +4,7 @@ LABEL authors="austinv11"
 
 ENV BOWTIE2_VERSION="2.5.4"
 
-ENV BOWTIE2_URL="https://github.com/BenLangmead/bowtie2/releases/download/v${BWAMEM_VERSION}/bowtie2-${BWAMEM_VERSION}-linux-x86_64.zip"
+ENV BOWTIE2_URL="https://github.com/BenLangmead/bowtie2/releases/download/v${BOWTIE2_VERSION}/bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip"
 
 WORKDIR /build
 ADD $BOWTIE2_URL /build/
