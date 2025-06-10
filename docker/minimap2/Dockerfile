@@ -1,5 +1,5 @@
 #FROM alpine:latest
-FROM debian:slim-bookworm-slim
+FROM debian:bookworm-slim
 LABEL authors="austinv11"
 
 ENV MINIMAP2_VERSION="2.29"
