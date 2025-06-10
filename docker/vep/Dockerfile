@@ -4,7 +4,7 @@ LABEL authors="austinv11"
 
 # Install Aria2, gcc, g++, make
 RUN apt-get update && \
-    apt-get install -y aria2 gcc g++ make build-essential libmariadb-dev && \
+    apt-get install -y aria2 gcc g++ make build-essential libmariadb-dev default-libmysqlclient-dev libexpat1-dev libdb-dev libbio-bigfile-perl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -12,7 +12,7 @@ RUN apt-get update && \
 RUN cpanm Archive::Zip DBI
 
 # Install extra dependencies
-RUN cpanm --notest DBD::mysql Set::IntervalTree JSON PerlIO::gzip Bio::DB::BigFile
+RUN cpanm --notest DBD::mysql Set::IntervalTree JSON PerlIO::gzip
 
 ENV VEP_VERSION="114.1"
 
