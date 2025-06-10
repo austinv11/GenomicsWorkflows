@@ -11,8 +11,8 @@ RUN apt-get update && \
 # Install Perl libraries: Archive::Zip and DBI
 RUN cpanm Archive::Zip DBI
 
-# Install extra deendencies
-RUN cpanm DBD::mysql SET::IntervalTree JSON PerlIO::gzip Bio::DB::BigFIle
+# Install extra dependencies
+RUN cpanm --notest DBD::mysql Set::IntervalTree JSON PerlIO::gzip Bio::DB::BigFile
 
 ENV VEP_VERSION="114.1"
 
