@@ -5,7 +5,7 @@ results_dir: "results"
 # Arguments
 aligner: "bwa-mem2"  # Options: "bwa-mem2", "bowtie2", "minimap2"
 variant_caller: "gatk-mutect"  # Options: "gatk-mutect", "glimpse2"
-effect_predictor: "gatk-funcotator"  # Options: "gatk-funcotator", "snpeff"
+effect_predictor: "gatk-funcotator"  # Options: "gatk-funcotator", "vep"
 
 # Preprocessing options
 low_complexity_filter: true

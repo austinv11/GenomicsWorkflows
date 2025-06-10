@@ -1,5 +1,5 @@
 #FROM alpine:latest
-FROM debian:slim-bookworm
+FROM debian:bookworm-slim
 LABEL authors="austinv11"
 
 ENV BOWTIE2_VERSION="2.5.4"

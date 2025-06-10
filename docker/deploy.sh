@@ -18,7 +18,7 @@ rm -f $(pwd)/*/*.sif
 build_docker_image() {
     local image_name="$1"
     $docker_exec build -t "$image_name" "$(pwd)/$image_name/"
-    $docker_exec save -o "$(pwd)/$image_name/$image_name.tar" "$docker_user/$image_name:latest"
+    $docker_exec save "$docker_user/$image_name:latest" > "$(pwd)/$image_name/$image_name.tar"
     apptainer build "$(pwd)/$image_name/$image_name.sif" "docker-archive://$(pwd)/$image_name/$image_name.tar"
     rm -f "$(pwd)/$image_name/$image_name.tar"
 }
