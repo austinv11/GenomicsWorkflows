@@ -15,7 +15,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     unzip bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip && \
     rm bowtie2-${BOWTIE2_VERSION}-linux-x86_64.zip && \
-    chmod +x bowtie2-${BOWTIE2_VERSION}-linux-x86_64/bowtie2* && \
+    chmod +x bowtie2-${BOWTIE2_VERSION}-linux-x86_64/bowtie2*
 
 ENV PATH="/build/bowtie2-${BOWTIE2_VERSION}-linux-x86_64/:$PATH"
 
