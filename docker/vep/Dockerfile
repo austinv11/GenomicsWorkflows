@@ -4,7 +4,7 @@ LABEL authors="austinv11"
 
 # Install Aria2, gcc, g++, make
 RUN apt-get update && \
-    apt-get install -y aria2 gcc g++ make build-essential libmysqlclient-dev && \
+    apt-get install -y aria2 gcc g++ make build-essential libmariadb-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
