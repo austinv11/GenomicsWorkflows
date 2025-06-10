@@ -1,0 +1,14 @@
+# Output directories
+fastq_dir: "raw_data"
+results_dir: "results"
+
+# Arguments
+aligner: "bwa-mem2"  # Options: "bwa-mem2", "bowtie2", "minimap2"
+variant_caller: "gatk-mutect"  # Options: "gatk-mutect", "glimpse2"
+effect_predictor: "gatk-funcotator"  # Options: "gatk-funcotator", "snpeff"
+
+# Preprocessing options
+low_complexity_filter: true
+
+# Where these workflows are installed
+workflow_dir: "/workdir/aav4003/GenomicsWorkflows"

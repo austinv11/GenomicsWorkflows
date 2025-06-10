@@ -105,7 +105,7 @@ rule merge_lanes:
 
 
 rule fastp:
-    container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
+    container: f"{config['workflow_dir']}/docker/multiqc/multiqc.sif"
     shadow: "copy-minimal"  # Required when using .sif
     input:
         r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
@@ -132,7 +132,7 @@ rule fastp:
 
 
 rule fastp_report_only:
-    container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
+    container: f"{config['workflow_dir']}/docker/multiqc/multiqc.sif"
     shadow: "copy-minimal"  # Required when using .sif
     input:
         r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",

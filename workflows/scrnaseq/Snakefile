@@ -5,10 +5,9 @@ This workflow combines short read processing with downstream scRNA-seq analysis.
 """
 
 # Set default config values if not provided
-config.setdefault("registry", "biohpc_aav4003")
 config.setdefault("fastq_dir","raw_data")
 config.setdefault("results_dir","results")
-config.setdefault("low_complexity_filter",True)
+config.setdefault("workflow_dir", os.path.dirname(os.path.abspath(__file__)))
 
 # Single-cell specific config values
 config.setdefault("mode", 'three-prime')  # Either three-prime or flex
@@ -89,7 +88,7 @@ def strip_s_suffix(name: str) -> str:
 if config['mode'] == 'three-prime':
     # For the three-prime mode
     rule cellranger:
-        container: f"{config['workflow_dir']}/docker/10xrangers/10x_ranger_image.sif"
+        container: f"{config['workflow_dir']}/docker/10xrangers/10xrangers.sif"
         shadow: "copy-minimal"  # Required when using .sif
         input:
             r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
@@ -117,7 +116,7 @@ if config['mode'] == 'three-prime':
             """
 elif config['mode'] == 'flex':
     rule generate_multi_csv:  # Create the csv file input for the cellranger multi command
-        container: f"{config['workflow_dir']}/docker/10xrangers/10x_ranger_image.sif"
+        container: f"{config['workflow_dir']}/docker/10xrangers/10xrangers.sif"
         shadow: "copy-minimal"  # Required when using .sif
         input:
             r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
@@ -143,7 +142,7 @@ elif config['mode'] == 'flex':
             """
 
     rule cellranger:
-        container: f"{config['workflow_dir']}/docker/10xrangers/10x_ranger_image.sif"
+        container: f"{config['workflow_dir']}/docker/10xrangers/10xrangers.sif"
         shadow: "copy-minimal"  # Required when using .sif
         input:
             r1=f"{get_merged_dir()}/{{sample}}_L001_R1_001.fastq.gz",
@@ -168,7 +167,7 @@ else:
 
 
 rule multiqc:
-    container: f"{config['workflow_dir']}/docker/multiqc/multiqc_image.sif"
+    container: f"{config['workflow_dir']}/docker/multiqc/multiqc.sif"
     shadow: "copy-minimal"  # Required when using .sif
     input:
         tenx_output=f"{os.path.abspath(config['results_dir'])}/{config['cellranger_output']}/{{sample}}",

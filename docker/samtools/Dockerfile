@@ -19,7 +19,8 @@ RUN apk add --no-cache \
     libdeflate-dev \
     g++ \
     python3 \
-    bash
+    bash \
+    aria2
 
 ENV SAMTOOLS_VER="1.21"
 ENV BCFTOOLS_VER="1.21"

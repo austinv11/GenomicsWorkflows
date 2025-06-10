@@ -1,14 +1,11 @@
 # Output directories
 fastq_dir: "raw_data"
-results_dir: "fastp_results"
+results_dir: "results"
 cellranger_output: "cellranger_out"
 
 # Reference and mode configuration
 organism: "human"  # Options: human, mouse
 mode: "three-prime"  # Options: three-prime, flex
-
-# Preprocessing options
-low_complexity_filter: true
 
 # Where these workflows are installed
 workflow_dir: "/workdir/aav4003/GenomicsWorkflows"

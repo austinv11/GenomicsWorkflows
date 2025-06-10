@@ -1,0 +1,463 @@
+"""
+Snakemake workflow for genotyping bulk WGS data.
+"""
+
+# Set default config values if not provided
+config.setdefault("fastq_dir","raw_data")
+config.setdefault("results_dir","results")
+config.setdefault("workflow_dir", os.path.dirname(os.path.abspath(__file__)))
+config.setdefault("low_complexity_filter",True)
+config.setdefault("aligner", "bwa-mem2")
+config.setdefault("variant_caller", "gatk-mutect")
+config.setdefault("effect_predictor", "gatk-funcotator")
+
+config['fastq_dir'] = Path(config['fastq_dir']).resolve()
+config['results_dir'] = Path(config['results_dir']).resolve()
+config['workflow_dir'] = Path(config['workflow_dir']).resolve()
+
+# Import shortread workflow
+include: "../rules/shortread.smk"
+
+# Import required functions
+from pathlib import Path
+import glob
+import re
+
+
+# Update the all rule to ensure it requests all samples
+rule all:
+    input:
+        pass
+
+
+def get_samples():
+    return sorted({
+        re.sub(r"_L\d{3}(_R[12].*)?$", "", Path(f).stem)   # strip lane & read
+                   for f in glob.glob(f"{config['fastq_dir']}/*_R1_*.f*q*")})
+
+
+def get_merged_dir():
+    return os.path.abspath(f"{config['results_dir']}/merged")
+
+
+def get_fastp_dir():
+    return os.path.abspath(f"{config['results_dir']}/fastp")
+
+
+def strip_s_suffix(name: str) -> str:
+    """Return Illumina sample ID (everything before _S\d+)."""
+    return re.sub(r"_S\d+$", "", name)
+
+
+rule download_reference:
+    container: f"{config['workflow_dir']}/docker/generated/gget-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/gget-environment.yml"
+    output:
+        assembly=temp(config['results_dir'] / "reference" / "assembly.fasta"),
+        gtf=temp(config['results_dir'] / "reference" / "assembly.gtf"),
+    log:
+        config['results_dir'] / "logs" / "reference.json",
+    params:
+        release="114"
+    shell:
+        """
+        gget ref -w gtf,dna -o {log} -r {params.release} -d -q human
+        
+        gunzip Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+        mv Homo_sapiens.GRCh38.dna.primary_assembly.fa {output.assembly}
+        rm -f Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+        gunzip Homo_sapiens.GRCh38.114.gtf.gz
+        mv Homo_sapiens.GRCh38.114.gtf {output.gtf}
+        rm -f Homo_sapiens.GRCh38.114.gtf.gz
+        """
+
+
+if config['aligner'] == 'bwa-mem2':
+    rule bwa_align:
+        container: f"{config['workflow_dir']}/docker/bwa/bwa.sif"
+        shadow: 'copy-minimal'  # Required when using .sif
+        input:
+            assembly=config['results_dir'] / "reference" / "assembly.fasta",
+            r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+            r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+        output:
+            alignment=temp(config['results_dir'] / "alignment" / "{{sample}}.sam")
+        log:
+            config['results_dir'] / "logs" / "alignment.log",
+        threads: 16
+        shell:
+            """
+            bwa-mem2 index {input.assembly}
+            bwa-mem2 mem -t {threads} {input.r1} {input.r2} > {output.alignment} 2> {log}
+            """
+elif config['aligner'] == 'bowtie2':
+    rule bowtie2_align:
+        container: f"{config['workflow_dir']}/docker/bowtie2/bowtie2.sif"
+        shadow: 'copy-minimal'
+        input:
+            assembly=config['results_dir'] / "reference" / "assembly.fasta",
+            r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+            r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+        output:
+            alignment=temp(config['results_dir'] / "alignment" / "{{sample}}.sam")
+        log:
+            config['results_dir'] / "logs" / "alignment.log",
+        threads: 16
+        shell:
+            """
+            bowtie2-build {input.assembly} {input.assembly}.bt2 > {log}
+            bowtie2 -x {input.assembly}.bt2 -1 {input.r1} -2 {input.r2} -S {output.alignment} -p {threads} 2>> {log}
+            """
+elif config['aligner'] == 'minimap2':
+    rule minimap2_align:
+        container: f"{config['workflow_dir']}/docker/minimap2/minimap2.sif"
+        shadow: 'copy-minimal'
+        input:
+            assembly=config['results_dir'] / "reference" / "assembly.fasta",
+            r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+            r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+        output:
+            alignment=temp(config['results_dir'] / "alignment" / "{{sample}}.sam")
+        log:
+            config['results_dir'] / "logs" / "alignment.log",
+        params:
+            mode="sr"  # Short read mode, can instead be replaced with map-pb, map-ont, map-iclr, splice, splice:hq, splice:sr
+        threads: 16
+        shell:
+            """
+            minimap2 -ax {params.mode} -t {threads} {input.assembly} {input.r1} {input.r2} > {output.alignment} 2> {log}
+            """
+else:
+    raise ValueError(f"Invalid aligner selected: {config['aligner']}")
+
+
+rule convert_to_bam:
+    container: f"{config['workflow_dir']}/docker/samtools/samtools.sif"
+    shadow: 'copy-minimal'  # Required when using .sif
+    input:
+        sam=config['results_dir'] / "alignment" / "{{sample}}.sam"
+    output:
+        bam=config['results_dir'] / "alignment" / "{{sample}}.sorted.bam",
+        bam_index=temp(config['results_dir'] / "alignment" / "{{sample}}.sorted.bai"),
+        stats=config['results_dir'] / "QC" / "{{sample}}.stats.txt",
+        flagstats=config['results_dir'] / "QC" / "{{sample}}.flagstats.txt",
+        idxstats=config['results_dir'] / "QC" / "{{sample}}.idxstats.txt",
+        coverage=config['results_dir'] / "QC" / "{{sample}}.coverage.txt",
+        duplicates=config['results_dir'] / "QC" / "{{sample}}.duplicates.txt",
+        deduped_bam=config['results_dir'] / "alignment" / "{{sample}}.deduped.bam",
+        deduped_bam_index=temp(config['results_dir'] / "alignment" / "{{sample}}.deduped.bai")
+    log:
+        config['results_dir'] / "logs" / "convert_to_bam.log",
+    threads: 4
+    shell:
+        """
+        BAM={output.bam}
+        samtools sort -@ {threads} -O BAM -o {output.bam} {input.sam} > {log}
+        samtools index -@ {threads} {BAM} {output.bam_index}
+        samtools stats -@ {threads} {BAM} > {output.stats}
+        samtools flagstat -@ {threads} {BAM} > {output.flagstats}
+        samtools idxstats {BAM} > {output.idxstats}
+        samtools coverage -@ {threads} {BAM} > {output.coverage}
+        samtools markdup -@ {threads} -r {BAM} {output.deduped_bam} > {output.duplicates}
+        samtools index -@ {threads} {output.deduped_bam} {output.deduped_bama_index}
+        """
+
+# FIXME: This currently only supports unpaired samples (i.e. tumor WGS only).
+if config['variant_caller'] == 'gatk-mutect':
+    rule gatk_mutect_call:
+        conainter: f"{config['workflow_dir']}/docker/gatk/gatk.sif"
+        shadow: 'copy-minimal'  # Required when using .sif
+        input:
+            reference_assembly=...,
+            bam_files=expand(config['results_dir'] / "alignment" / "{{sample}}.deduped.bam", sample=get_samples()),
+        output:
+            vcf_file=config['results_dir'] / "variants" / "total.vcf.gz",
+            raw_vcf_file=temp(config['results_dir'] / "variants" / "raw.vcf.gz"),
+            gnomad_af=temp(config['results_dir'] / "variants" / "af-only-gnomad.hg38.vcf.gz"),
+            f1r2_tar=temp(config['results_dir'] / "variants" / "f1r2.tar.gz"),
+            orientation_model=temp(config['results_dir'] / "variants" / "orientation_model.tar.gz"),
+        params:
+            bam_args=" ".join(f"-I {bam}" for bam in expand(config['results_dir'] / "alignment" / "{{sample}}.deduped.bam", sample=get_samples())),
+        resources:
+            mem_mb=16000  # Adjust based on your system's memory
+        shell:
+            """
+            aria2c -x 16 -s 16 -k 1M -o {output.gnomad_af} https://storage.cloud.google.com/gatk-best-practices/somatic-hg38/af-only-gnomad.hg38.vcf.gz
+            gatk --java-options "-Xmx{resources.mem_mb}m" Mutect2 \
+                    -R {input.reference_assembly} \
+                     {params.bam_args} \
+                    -O {output.raw_vcf_file} \
+                    --germline-resource {output.gnomad_af} \
+                    --max-reads-per-alignment-start 0 
+                    
+            gatk --java-options "-Xmx{resources.mem_mb}m" FilterMutectCalls \
+                    -V {output.raw_vcf_file} \
+                    -R {input.reference_assembly} \
+                    -O {output.vcf_file}
+            """
+elif config['variant_caller'] == 'glimpse2':
+    rule prepare_references:
+        container: f"{config['workflow_dir']}/docker/samtools/samtools.sif"
+        shadow: 'copy-minimal'  # Required when using .sif
+        output:
+            vcf=temp(
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.vcf.gz", chr=list(range(1, 23)) + ['X'])
+            ),
+            vcf_index=temp(
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.vcf.gz.tbi", chr=list(range(1, 23)) + ['X'])
+            ),
+            bcf=temp(
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.bcf", chr=list(range(1, 23)) + ['X'])
+            ),
+            bcf_index=temp(
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.bcf.csi", chr=list(range(1, 23)) + ['X'])
+            ),
+            maps=temp(
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.genetic_map.txt", chr=list(range(1, 23)) + ['X'])
+            ),
+        threads: 4
+        shell:
+            """
+            CHRS="$(seq 1 22) X"
+            BASE="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20201028_3202_phased/CCDG_14151_B01_GRM_WGS_2020-08-05_chr"
+            GLIMPSE_MAP_BASE"https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/"
+            for chr in $CHRS; do
+                # Download the VCF file and its index for each chromosome
+                outvcf="{config[results_dir]}/glimpse2_references/1000genomes.${chr}.vcf.gz"
+                outtbi="{config[results_dir]}/glimpse2_references/1000genomes.${chr}.vcf.gz.tbi"
+                url="${BASE}${chr}.filtered.shapeit2-duohmm-phased.vcf.gz"
+                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${outvcf}" "${url}"
+                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${outtbi}" "${url}.tbi"
+                bcftools norm -m -any {output.vcf} --threads {threads} -Ou | \
+                bcftools view -G -Oz -o {output.bcf} --threads {threads}
+                bcftools index -f {output.bcf} --threads {threads}
+                
+                # Download the pre-computed genetic map files
+                outmap="{config[results_dir]}/glimpse2_references/1000genomes.${chr}.genetic_map.txt
+                map_url="${GLIMPSE_MAP_BASE}genetic_map_chr${chr}_b38.txt"
+                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${outmap}" "${map_url}"
+            done
+            """
+
+    rule glimpse2_chunk:
+        container: f"{config['workflow_dir']}/docker/glimpse2/glimpse2.sif"
+        shadow: 'copy-minimal'
+        input:
+            bcf=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf"),
+            bcf_index=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi"),
+            map=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt",
+        output:
+            chunks=temp(config['results_dir'] / "glimpse2_chunks" / "chunks.{chr}.txt")
+        threads: 4,
+        shell:
+            """
+            # Chunk
+            GLIMPSE2_chunk --input {input.vcf} \
+                --sequential \
+                --threads {threads} \
+                --region chr{wildcards.chr} \
+                --output {output.chunks} \
+                --map {input.map} \
+            """
+
+    rule glimpse2_split_reference:
+        container: f"{config['workflow_dir']}/docker/glimpse2/glimpse2.sif"
+        shadow: 'copy-minimal'
+        input:
+            bcf=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf"),
+            bcf_index=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi"),
+            map=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt",
+            chunks=config['results_dir'] / "glimpse2_chunks" / "chunks.{chr}.txt",
+        output:
+            split_out=temp(directory(config['results_dir'] / "glimpse2_split" / "chr{chr}_split"))
+        threads: 4,
+        shell:
+            """
+            while IFS="" read -r LINE || [[ -n "$LINE" ]]; do
+                printf -v ID "%02d" $(echo $LINE | cut -d' ' -f1)
+                IRG=$(echo $LINE | cut -d" " -f3)
+                ORG=$(echo $LINE | cut -d" " -f4)
+                GLIMPSE2_split_reference --input {input.bcf} \
+                    --map {input.map} \
+                    --input-region ${IRG} \
+                    --output-region ${ORG} \
+                    --threads {threads} \
+                    --output {output.split_out}/1000genomes_chr{wildcards.chr}
+            done < {input.chunks}
+            """
+
+    rule glimpse2_impute_and_phase:
+        container: f"{config['workflow_dir']}/docker/glimpse2/glimpse2.sif"
+        shadow: 'copy-minimal'
+        input:
+            split_ref=directory(config['results_dir'] / "glimpse2_split" / "chr{chr}_split"),
+            bam=config['results_dir'] / "alignment" / "{sample}.deduped.bam",
+            chunks=config['results_dir'] / "glimpse2_chunks" / "chunks.{chr}.txt",
+        output:
+            phased_bcf=temp(config['results_dir'] / "variants" / "{sample}.chr{chr}.phased.bcf"),
+            lst=temp(config['results_dir'] / "glimpse2_chunks" / "{sample}.phased.{chr}.lst")
+        threads: 4,
+        shell:
+            """
+            while IFS="" read -r LINE || [[ -n "$LINE" ]]; do
+                printf -v ID "%02d" $(echo $LINE | cut -d" " -f1)
+                IRG=$(echo $LINE | cut -d" " -f3)
+                ORG=$(echo $LINE | cut -d" " -f4)
+                CHR=$(echo $LINE | cut -d" " -f2)
+                REGS=$(echo $IRG | cut -d":" -f 2 | cut -d"-" -f1)
+                REGE=$(echo $IRG | cut -d":" -f 2 | cut -d"-" -f2)
+                
+                GLIMPSE2_phase --bam-file {input.bam} \
+                    --reference {input.split_ref}/1000genomes_chr{wildcards.chr}_$CHR_$REGS_$REGE.bin \
+                    --output {output.phased_bcf}_$CHR_$REGS_$REGE.bcf \
+                    --threads {threads}
+            done < {input.chunks}
+            
+            # Ligate chunks of the same chromosome
+            ls -1v {output.phased_bcf}_*.bcf > {output.lst}
+            GLIMPSE2_ligate --input {output.lst} \
+                --output {output.phased_bcf} \
+                --threads {threads}
+            """
+
+    rule merge_chromosomes:
+        container: f"{config['workflow_dir']}/docker/samtools/samtools.sif"
+        shadow: 'copy-minimal'
+        input:
+            phased_bcf=expand(config['results_dir'] / "variants" / "{sample}.chr{chr}.phased.bcf", sample=get_samples(), chr=list(range(1, 23)) + ['X']),
+        output:
+            merged_bcf=temp(config['results_dir'] / "variants" / "{sample}.phased.bcf"),
+            merged_bcf_index=temp(config['results_dir'] / "variants" / "{sample}.phased.bcf.csi"),
+        threads: 4,
+        shell:
+            """
+            bcftools concat -Oz -o {output.merged_bcf} {input.phased_bcf}
+            bcftools index -f {output.merged_bcf} --threads {threads}
+            """
+
+    rule merge_samples:
+        container: f"{config['workflow_dir']}/docker/samtools/samtools.sif"
+        shadow: 'copy-minimal'
+        input:
+            phased_bcf=expand(config['results_dir'] / "variants" / "{sample}.phased.bcf", sample=get_samples()),
+        output:
+            merged_bcf=temp(config['results_dir'] / "variants" / "total.phased.bcf"),
+            merged_bcf_index=temp(config['results_dir'] / "variants" / "total.phased.bcf.csi"),
+        threads: 4,
+        shell:
+            """
+            bcftools merge -Oz -o {output.merged_bcf} {input.phased_bcf}
+            bcftools index -f {output.merged_bcf} --threads {threads}
+            """
+
+    rule convert_bcf_to_vcf:
+        container: f"{config['workflow_dir']}/docker/samtools/samtools.sif"
+        shadow: 'copy-minimal'
+        input:
+            bcf=config['results_dir'] / "variants" / "total.phased.bcf",
+        output:
+            vcf_file=config['results_dir'] / "variants" / "total.vcf.gz",
+            vcf_index=temp(config['results_dir'] / "variants" / "total.vcf.gz.tbi"),
+        threads: 4,
+        shell:
+            """
+            bcftools convert -Oz -o {output.vcf_file} {input.bcf}
+            bcftools index -f {output.vcf_file} --threads {threads}
+            """
+
+else:
+    raise ValueError(f"Invalid variant caller selected: {config['variant_caller']}")
+
+
+if config['effect_predictor'] == 'gatk-funcotator':
+    rule gatk_funcolator_download:
+        container: f"{config['workflow_dir']}/docker/gatk/gatk.sif"
+        shadow: 'copy-minimal'  # Required when using .sif
+        params:
+            genome="hg38",
+        output:
+            annotations=temp(
+                config['results_dir'] / "annotations" / "funcotator_data"
+            )
+        shell:
+            """
+            gatk FuncotatorDataSourceDownloader \
+                --somatic \
+                --{params.genome} \
+                --validate-integrity \
+                --extract-after-download \
+                -O {output.annotations}
+            """
+
+    rule gatk_funcotator:
+        container: f"{config['workflow_dir']}/docker/gatk/gatk.sif"
+        shadow: 'copy-minimal'  # Required when using .sif
+        input:
+            annotations=config['results_dir'] / "annotations" / "funcotator_data",
+            vcf_file=config['results_dir'] / "variants" / "total.vcf.gz",
+            reference_assembly=config['results_dir'] / "reference" / "assembly.fasta",
+        params:
+            genome="hg38",
+        output:
+            annotated_vcf=config['results_dir'] / "variants" / "annotated.vcf.gz"
+        shell:
+            """
+            gatk Funcotator \
+                -R {input.reference_assembly} \
+                -V {input.vcf_file} \
+                -O {output.annotated_vcf} \
+                --data-sources-path {input.annotations} \
+                --output-file-format VCF \
+                --ref-version {params.genome}
+            """
+
+elif config['effect_predictor'] == 'vep':
+    rule vep:
+        container: f"{config['workflow_dir']}/docker/vep/vep.sif"
+        shadow: 'copy-minimal'
+        input:
+            vcf_file=config['results_dir'] / "variants" / "total.vcf.gz"
+        # We will run VEP for each sample in the VCF file
+        params:
+            genome="GRCh38",
+        output:
+            annotated_vcf=config['results_dir'] / "variants" / "annotated.vcf.gz"
+        threads: 4
+        shell:
+            """
+            vep -i {input.vcf_file} \
+                --force_overwrite \
+                --fork {threads} \
+                --pick \
+                --cache \
+                --vcf \
+                --output_file {output.annotated_vcf} \
+                --assembly {params.genome} \
+                --everything
+            """
+else:
+    raise ValueError(f"Invalid effect predictor selected: {config['effect_predictor']}")
+
+
+rule multiqc:
+    container: f"{config['workflow_dir']}/docker/multiqc/multiqc.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    input:
+        r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
+        r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+        fastp_report_json=f"{get_fastp_dir()}/{{sample}}.json",
+        fastp_report_html=f"{get_fastp_dir()}/{{sample}}.html",
+        alignment=f"{config['results_dir']}/alignment/{{sample}}.sorted.bam",
+        stats=f"{config['results_dir']}/QC/{{sample}}.stats.txt",
+        flagstats=f"{config['results_dir']}/QC/{{sample}}.flagstats.txt",
+        idxstats=f"{config['results_dir']}/QC/{{sample}}.idxstats.txt",
+        coverage=f"{config['results_dir']}/QC/{{sample}}.coverage.txt"
+    output:
+        outdir=directory(f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/"),
+        outreport=f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/multiqc_report.html"
+    params:
+        indir=directory(os.path.abspath(config["results_dir"]))
+    shell:
+        "multiqc --outdir {output.outdir} {params.indir}"
