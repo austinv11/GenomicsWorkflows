@@ -25,16 +25,12 @@ RUN apt-get update && \
         tar \
         libhts-dev \
         libcurl4-gnutls-dev \
-        libwww-perl \  # provides LWP::Simple
-        liblwp-protocol-https-perl \  # HTTPS support for LWP
-        libbio-perl-perl \  # Bio::Root::Version and friends \
-        cpanminus \
         libssl-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Perl libraries: Archive::Zip and DBI
-RUN cpanm Archive::Zip DBI Archive::Extract Module::Build List::MoreUtils List::MoreUtils::XS
+RUN cpanm Archive::Zip DBI Archive::Extract Module::Build List::MoreUtils List::MoreUtils::XS LWP::Simple LWP::Protocol::https
 
 # Install extra dependencies
 RUN cpanm --notest Set::IntervalTree JSON PerlIO::gzip
