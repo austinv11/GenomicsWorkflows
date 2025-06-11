@@ -371,6 +371,21 @@ else:
     raise ValueError(f"Invalid variant caller selected: {config['variant_caller']}")
 
 
+rule bcftools_stats:
+    container: f"{config['workflow_dir']}/docker/samtools/samtools.sif"
+    shadow: 'copy-minimal'  # Required when using .sif
+    input:
+        vcf_file=config['results_dir'] / "variants" / "total.vcf.gz",
+    output:
+        stats=config['results_dir'] / "variants" / "total.vcf.gz.stats.txt",
+    log:
+        config['results_dir'] / "logs" / "bcftools_stats.log",
+    shell:
+        """
+        bcftools stats {input.vcf_file} > {output.stats} 2> {log}
+        """
+
+
 if config['effect_predictor'] == 'gatk-funcotator':
     rule gatk_funcolator_download:
         container: f"{config['workflow_dir']}/docker/gatk/gatk.sif"
@@ -453,7 +468,9 @@ rule multiqc:
         stats=f"{config['results_dir']}/QC/{{sample}}.stats.txt",
         flagstats=f"{config['results_dir']}/QC/{{sample}}.flagstats.txt",
         idxstats=f"{config['results_dir']}/QC/{{sample}}.idxstats.txt",
-        coverage=f"{config['results_dir']}/QC/{{sample}}.coverage.txt"
+        coverage=f"{config['results_dir']}/QC/{{sample}}.coverage.txt",
+        bcf_stats=f"{config['results_dir']}/variants/{{sample}}.vcf.gz.stats.txt",
+        logs=directory(config['results_dir'] / "logs"),
     output:
         outdir=directory(f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/"),
         outreport=f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/multiqc_report.html"

@@ -67,7 +67,7 @@ generate_conda_docker_images() {
     echo "ENV PATH=/opt/env/bin:\$PATH" >> "$dockerfile"
 
     $docker_exec build -t "${env_name}" "$generated_dir/"
-    $docker_exec save -o "$generated_dir/${env_name}.tar" "$docker_user/${env_name}:latest"
+    $docker_exec save "$docker_user/${env_name}:latest" > "$generated_dir/${env_name}.tar"
     apptainer build "$generated_dir/${env_name}.sif" "docker-archive://$generated_dir/${env_name}.tar"
     rm -f "$generated_dir/${env_name}.tar" "$dockerfile" "$lock_file"
   done
