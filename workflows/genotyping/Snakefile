@@ -220,6 +220,8 @@ elif config['variant_caller'] == 'glimpse2':
         threads: 4
         shell:
             """
+            set -euo pipefail
+            
             CHRS="$(seq 1 22) X"
             BASE="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20201028_3202_phased/CCDG_14151_B01_GRM_WGS_2020-08-05_chr"
             GLIMPSE_MAP_BASE="https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/"
@@ -230,16 +232,16 @@ elif config['variant_caller'] == 'glimpse2':
                 outbcf="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.bcf"
                 outcsi="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.bcf.csi"
                 url="${{BASE}}${{chr1}}.filtered.shapeit2-duohmm-phased.vcf.gz"
-                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${{outvcf}}" "${{url}}"
-                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${{outtbi}}" "${{url}}.tbi"
+                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait 10 -o "${{outvcf}}" "${{url}}"
+                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait 10 -o "${{outtbi}}" "${{url}}.tbi"
                 bcftools norm -m -any $outvcf --threads {threads} -Ou | \
-                bcftools view -G -Oz -o $outbcf --threads {threads}
+                bcftools view -G -Ob -o $outbcf --threads {threads}
                 bcftools index -f $outbcf --threads {threads}
                 
                 # Download the pre-computed genetic map files
-                outmap="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.genetic_map.txt
+                outmap="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.genetic_map.txt"
                 map_url="${{GLIMPSE_MAP_BASE}}genetic_map_chr${{chr1}}_b38.txt"
-                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${{outmap}}" "${{map_url}}"
+                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait 10 -o "${{outmap}}" "${{map_url}}"
             done
             """
 
@@ -277,6 +279,8 @@ elif config['variant_caller'] == 'glimpse2':
         threads: 4,
         shell:
             """
+            set -euo pipefail
+            
             while IFS="" read -r LINE || [[ -n "$LINE" ]]; do
                 printf -v ID "%02d" $(echo $LINE | cut -d' ' -f1)
                 IRG=$(echo $LINE | cut -d" " -f3)
@@ -303,6 +307,8 @@ elif config['variant_caller'] == 'glimpse2':
         threads: 4,
         shell:
             """
+            set -euo pipefail
+            
             while IFS="" read -r LINE || [[ -n "$LINE" ]]; do
                 printf -v ID "%02d" $(echo $LINE | cut -d" " -f1)
                 IRG=$(echo $LINE | cut -d" " -f3)
