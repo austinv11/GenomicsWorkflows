@@ -4,7 +4,27 @@ LABEL authors="austinv11"
 
 # Install Aria2, gcc, g++, make
 RUN apt-get update && \
-    apt-get install -y git aria2 gcc g++ make build-essential libdbd-mysql-perl libmariadb-dev default-libmysqlclient-dev libexpat1-dev libdb-dev zlib1g-dev unzip gzip tar && \
+    apt-get install -y \
+        libbz2-dev \
+        liblzma-dev \
+        git \
+        aria2 \
+        gcc \
+        g++ \
+        make \
+        build-essential \
+        libdbd-mysql-perl \
+        libmariadb-dev \
+        default-libmysqlclient-dev \
+        libexpat1-dev \
+        libdb-dev \
+        zlib1g-dev \
+        unzip \
+        gzip \
+        tar \
+        libhts-dev \
+        libcurl4-openssl-dev \
+        libssl-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
