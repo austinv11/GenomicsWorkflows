@@ -106,7 +106,7 @@ rule merge_lanes:
             if [[ $(echo {input.r1} | wc -w) -gt 1 ]]; then
                 cat {input.r1} > {output.r1}
             else
-                ln -sf {input.r1} {output.r1}
+                cp {input.r1} {output.r1}
             fi
         else
             echo "Missing or empty input: {input.r1}" >&2
@@ -116,7 +116,7 @@ rule merge_lanes:
             if [[ $(echo {input.r2} | wc -w) -gt 1 ]]; then
                 cat {input.r2} > {output.r2}
             else
-                ln -sf {input.r2} {output.r2}
+                cp {input.r2} {output.r2}
             fi
         else
             echo "Missing or empty input: {input.r2}" >&2
