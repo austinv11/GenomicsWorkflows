@@ -27,7 +27,7 @@ import re
 # Update the all rule to ensure it requests all samples
 rule all:
     input:
-        pass
+        f"{config['results_dir']}/variants/total.vcf.gz"
 
 
 def get_samples():
