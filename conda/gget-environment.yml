@@ -3,5 +3,5 @@ channels:
 
 dependencies:
   - python=3.11
-  - pip:
-    - gget~=0.29
+  - gget~=0.29
+  - curl

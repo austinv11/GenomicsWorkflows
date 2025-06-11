@@ -223,11 +223,11 @@ elif config['variant_caller'] == 'glimpse2':
             CHRS="$(seq 1 22) X"
             BASE="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20201028_3202_phased/CCDG_14151_B01_GRM_WGS_2020-08-05_chr"
             GLIMPSE_MAP_BASE"https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/"
-            for chr in $CHRS; do
+            for chr1 in $CHRS; do
                 # Download the VCF file and its index for each chromosome
-                outvcf="{config[results_dir]}/glimpse2_references/1000genomes.${chr}.vcf.gz"
-                outtbi="{config[results_dir]}/glimpse2_references/1000genomes.${chr}.vcf.gz.tbi"
-                url="${BASE}${chr}.filtered.shapeit2-duohmm-phased.vcf.gz"
+                outvcf="{config[results_dir]}/glimpse2_references/1000genomes.${chr1}.vcf.gz"
+                outtbi="{config[results_dir]}/glimpse2_references/1000genomes.${chr1}.vcf.gz.tbi"
+                url="${BASE}${chr1}.filtered.shapeit2-duohmm-phased.vcf.gz"
                 aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${outvcf}" "${url}"
                 aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${outtbi}" "${url}.tbi"
                 bcftools norm -m -any {output.vcf} --threads {threads} -Ou | \
@@ -235,8 +235,8 @@ elif config['variant_caller'] == 'glimpse2':
                 bcftools index -f {output.bcf} --threads {threads}
                 
                 # Download the pre-computed genetic map files
-                outmap="{config[results_dir]}/glimpse2_references/1000genomes.${chr}.genetic_map.txt
-                map_url="${GLIMPSE_MAP_BASE}genetic_map_chr${chr}_b38.txt"
+                outmap="{config[results_dir]}/glimpse2_references/1000genomes.${chr1}.genetic_map.txt
+                map_url="${GLIMPSE_MAP_BASE}genetic_map_chr${chr1}_b38.txt"
                 aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${outmap}" "${map_url}"
             done
             """
