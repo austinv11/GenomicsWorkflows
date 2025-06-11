@@ -227,12 +227,14 @@ elif config['variant_caller'] == 'glimpse2':
                 # Download the VCF file and its index for each chromosome
                 outvcf="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.vcf.gz"
                 outtbi="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.vcf.gz.tbi"
+                outbcf="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.bcf"
+                outcsi="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.bcf.csi"
                 url="${{BASE}}${{chr1}}.filtered.shapeit2-duohmm-phased.vcf.gz"
                 aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${{outvcf}}" "${{url}}"
                 aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${{outtbi}}" "${{url}}.tbi"
-                bcftools norm -m -any {output.vcf} --threads {threads} -Ou | \
-                bcftools view -G -Oz -o {output.bcf} --threads {threads}
-                bcftools index -f {output.bcf} --threads {threads}
+                bcftools norm -m -any $outvcf --threads {threads} -Ou | \
+                bcftools view -G -Oz -o $outbcf --threads {threads}
+                bcftools index -f $outbcf --threads {threads}
                 
                 # Download the pre-computed genetic map files
                 outmap="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.genetic_map.txt
