@@ -245,8 +245,8 @@ elif config['variant_caller'] == 'glimpse2':
         container: f"{config['workflow_dir']}/docker/glimpse2/glimpse2.sif"
         shadow: 'copy-minimal'
         input:
-            bcf=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf"),
-            bcf_index=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi"),
+            bcf=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf",
+            bcf_index=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi",
             map=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt",
         output:
             chunks=temp(config['results_dir'] / "glimpse2_chunks" / "chunks.{chr}.txt")
@@ -266,8 +266,8 @@ elif config['variant_caller'] == 'glimpse2':
         container: f"{config['workflow_dir']}/docker/glimpse2/glimpse2.sif"
         shadow: 'copy-minimal'
         input:
-            bcf=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf"),
-            bcf_index=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi"),
+            bcf=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf",
+            bcf_index=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi",
             map=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt",
             chunks=config['results_dir'] / "glimpse2_chunks" / "chunks.{chr}.txt",
         output:
@@ -292,7 +292,7 @@ elif config['variant_caller'] == 'glimpse2':
         container: f"{config['workflow_dir']}/docker/glimpse2/glimpse2.sif"
         shadow: 'copy-minimal'
         input:
-            split_ref=directory(config['results_dir'] / "glimpse2_split" / "chr{chr}_split"),
+            split_ref=config['results_dir'] / "glimpse2_split" / "chr{chr}_split",
             bam=config['results_dir'] / "alignment" / "{sample}.deduped.bam",
             chunks=config['results_dir'] / "glimpse2_chunks" / "chunks.{chr}.txt",
         output:
@@ -470,7 +470,7 @@ rule multiqc:
         idxstats=f"{config['results_dir']}/QC/{{sample}}.idxstats.txt",
         coverage=f"{config['results_dir']}/QC/{{sample}}.coverage.txt",
         bcf_stats=f"{config['results_dir']}/variants/{{sample}}.vcf.gz.stats.txt",
-        logs=directory(config['results_dir'] / "logs"),
+        logs=config['results_dir'] / "logs",
     output:
         outdir=directory(f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/"),
         outreport=f"{os.path.abspath(config['results_dir'])}/multiqc/{{sample}}/multiqc_report.html"
