@@ -221,7 +221,7 @@ elif config['variant_caller'] == 'glimpse2':
         shell:
             """
             set -euo pipefail
-            
+            mkdir -p {config[results_dir]}/glimpse2_references
             CHRS="$(seq 1 22) X"
             BASE="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20201028_3202_phased/CCDG_14151_B01_GRM_WGS_2020-08-05_chr"
             GLIMPSE_MAP_BASE="https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/"
@@ -280,6 +280,8 @@ elif config['variant_caller'] == 'glimpse2':
         shell:
             """
             set -euo pipefail
+            mkdir -p {config[results_dir]}/glimpse2_chunks
+            mkdir -p {output.split_out}
             
             while IFS="" read -r LINE || [[ -n "$LINE" ]]; do
                 printf -v ID "%02d" $(echo $LINE | cut -d' ' -f1)
@@ -308,6 +310,8 @@ elif config['variant_caller'] == 'glimpse2':
         shell:
             """
             set -euo pipefail
+            mkdir -p {config[results_dir]}/alignment
+            mkdir -p {config[results_dir]}/variants
             
             while IFS="" read -r LINE || [[ -n "$LINE" ]]; do
                 printf -v ID "%02d" $(echo $LINE | cut -d" " -f1)
