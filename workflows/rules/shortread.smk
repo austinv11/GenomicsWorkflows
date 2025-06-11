@@ -75,7 +75,7 @@ rule ensure_gzipped:
             exit 1
         fi
         if [[ "{input.fq}" == *.gz ]]; then
-            cp {input.fq} {output.gz}
+            ln -sf {input.fq} {output.gz}
         else
             gzip -c {input.fq} > {output.gz}
         fi
@@ -99,8 +99,29 @@ rule merge_lanes:
         r2=temp(f"{get_merged_dir()}/{{sample}}_L001_R2_001.fastq.gz")
     shell:
         """
-        cat {input.r1} > {output.r1}
-        cat {input.r2} > {output.r2}
+        # If multiple lanes, concatenate them, else symlink the single file
+        merged_dir=$(dirname {output.r1})
+        mkdir -p $merged_dir
+        if [[ -s {input.r1} ]]; then
+            if [[ $(echo {input.r1} | wc -w) -gt 1 ]]; then
+                cat {input.r1} > {output.r1}
+            else
+                ln -sf {input.r1} {output.r1}
+            fi
+        else
+            echo "Missing or empty input: {input.r1}" >&2
+            exit 1
+        fi
+        if [[ -s {input.r2} ]]; then
+            if [[ $(echo {input.r2} | wc -w) -gt 1 ]]; then
+                cat {input.r2} > {output.r2}
+            else
+                ln -sf {input.r2} {output.r2}
+            fi
+        else
+            echo "Missing or empty input: {input.r2}" >&2
+            exit 1
+        fi
         """
 
 
