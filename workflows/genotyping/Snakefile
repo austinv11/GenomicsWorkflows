@@ -219,7 +219,7 @@ elif config['variant_caller'] == 'glimpse2':
             ),
         params:
             results_dir=config['results_dir'],
-        threads: 4
+        threads: 8
         shell:
             """
             set -euo pipefail
@@ -242,7 +242,7 @@ elif config['variant_caller'] == 'glimpse2':
               aria2c $aria2_opts -o "$outvcf" "$url"
               aria2c $aria2_opts -o "$outtbi" "$url.tbi"
             
-              bcftools norm -m-any "$outdir/$outvcf" --threads {threads} -Ou | \
+              bcftools norm -m -any "$outdir/$outvcf" --threads {threads} -Ou | \
                 bcftools view -G -Ob --threads {threads} -o "$outdir/$outbcf" --write-index
             
               [ -s "$outdir/$outcsi" ] || {{ echo "index missing for $outbcf" >&2; exit 1; }}
