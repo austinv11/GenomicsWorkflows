@@ -167,7 +167,7 @@ rule convert_to_bam:
 # FIXME: This currently only supports unpaired samples (i.e. tumor WGS only).
 if config['variant_caller'] == 'gatk-mutect':
     rule gatk_mutect_call:
-        conainter: f"{config['workflow_dir']}/docker/gatk/gatk.sif"
+        container: f"{config['workflow_dir']}/docker/gatk/gatk.sif"
         shadow: 'copy-minimal'  # Required when using .sif
         input:
             reference_assembly=...,
