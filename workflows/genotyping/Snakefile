@@ -184,7 +184,7 @@ if config['variant_caller'] == 'gatk-mutect':
             mem_mb=16000  # Adjust based on your system's memory
         shell:
             """
-            aria2c -x 16 -s 16 -k 1M -o {output.gnomad_af} https://storage.cloud.google.com/gatk-best-practices/somatic-hg38/af-only-gnomad.hg38.vcf.gz
+            aria2c -x 16 -s 16 -k 1M -d $(dirname {output.gnomad_af}) -o $(basename {output.gnomad_af}) https://storage.cloud.google.com/gatk-best-practices/somatic-hg38/af-only-gnomad.hg38.vcf.gz
             gatk --java-options "-Xmx{resources.mem_mb}m" Mutect2 \
                     -R {input.reference_assembly} \
                      {params.bam_args} \
@@ -227,16 +227,16 @@ elif config['variant_caller'] == 'glimpse2':
             CHRS="$(seq 1 22) X"
             BASE="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20201028_3202_phased/CCDG_14151_B01_GRM_WGS_2020-08-05_chr"
             GLIMPSE_MAP_BASE="https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/"
-            aria2_opts="-x16 -s16 -k1M --max-tries=10 --retry-wait=10 --continue=true --check-integrity=true"
+            aria2_opts="-x16 -s16 -k1M --max-tries=10 --retry-wait=10 --continue=true --check-integrity=true -d {params.results_dir}/glimpse2_references"
             
             for chr1 in $CHRS; do
               outdir="{params.results_dir}/glimpse2_references"
             
-              outvcf="${{outdir}}/1000genomes.${{chr1}}.vcf.gz"
+              outvcf="1000genomes.${{chr1}}.vcf.gz"
               outtbi="${{outvcf}}.tbi"
-              outbcf="${{outdir}}/1000genomes.${{chr1}}.bcf"
+              outbcf="1000genomes.${{chr1}}.bcf"
               outcsi="${{outbcf}}.csi"
-              outmap="${{outdir}}/1000genomes.${{chr1}}.genetic_map.txt"
+              outmap="1000genomes.${{chr1}}.genetic_map.txt"
             
               url="${{BASE}}${{chr1}}.filtered.shapeit2-duohmm-phased.vcf.gz"
             
