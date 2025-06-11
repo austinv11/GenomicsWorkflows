@@ -225,19 +225,19 @@ elif config['variant_caller'] == 'glimpse2':
             GLIMPSE_MAP_BASE"https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/"
             for chr1 in $CHRS; do
                 # Download the VCF file and its index for each chromosome
-                outvcf="{config[results_dir]}/glimpse2_references/1000genomes.${chr1}.vcf.gz"
-                outtbi="{config[results_dir]}/glimpse2_references/1000genomes.${chr1}.vcf.gz.tbi"
-                url="${BASE}${chr1}.filtered.shapeit2-duohmm-phased.vcf.gz"
-                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${outvcf}" "${url}"
-                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${outtbi}" "${url}.tbi"
+                outvcf="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.vcf.gz"
+                outtbi="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.vcf.gz.tbi"
+                url="${{BASE}}${{chr1}}.filtered.shapeit2-duohmm-phased.vcf.gz"
+                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${{outvcf}}" "${{url}}"
+                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${{outtbi}}" "${{url}}.tbi"
                 bcftools norm -m -any {output.vcf} --threads {threads} -Ou | \
                 bcftools view -G -Oz -o {output.bcf} --threads {threads}
                 bcftools index -f {output.bcf} --threads {threads}
                 
                 # Download the pre-computed genetic map files
-                outmap="{config[results_dir]}/glimpse2_references/1000genomes.${chr1}.genetic_map.txt
-                map_url="${GLIMPSE_MAP_BASE}genetic_map_chr${chr1}_b38.txt"
-                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${outmap}" "${map_url}"
+                outmap="{config[results_dir]}/glimpse2_references/1000genomes.${{chr1}}.genetic_map.txt
+                map_url="${{GLIMPSE_MAP_BASE}}genetic_map_chr${{chr1}}_b38.txt"
+                aria2c -x 16 -s 16 -k 1M --max-tries 10 --retry-wait -o "${{outmap}}" "${{map_url}}"
             done
             """
 
@@ -281,8 +281,8 @@ elif config['variant_caller'] == 'glimpse2':
                 ORG=$(echo $LINE | cut -d" " -f4)
                 GLIMPSE2_split_reference --input {input.bcf} \
                     --map {input.map} \
-                    --input-region ${IRG} \
-                    --output-region ${ORG} \
+                    --input-region ${{IRG}} \
+                    --output-region ${{ORG}} \
                     --threads {threads} \
                     --output {output.split_out}/1000genomes_chr{wildcards.chr}
             done < {input.chunks}
