@@ -246,7 +246,7 @@ elif config['variant_caller'] == 'glimpse2':
               bcftools norm -m-any "$outdir/$outvcf" --threads {threads} -Ou | \
                 bcftools view -G -Ob --threads {threads} -o "$outdir/$outbcf" --write-index
             
-              [ -s "$outcsi" ] || {{ echo "index missing for $outbcf" >&2; exit 1; }}
+              [ -s "$outdir/$outcsi" ] || {{ echo "index missing for $outbcf" >&2; exit 1; }}
             
               aria2c $aria2_opts -o "$outdir/$outmap" "${{GLIMPSE_MAP_BASE}}genetic_map_chr${{chr1}}_b38.txt"
             done
