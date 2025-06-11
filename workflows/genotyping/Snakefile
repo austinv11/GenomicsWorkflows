@@ -248,7 +248,7 @@ elif config['variant_caller'] == 'glimpse2':
               [ -s "$outdir/$outcsi" ] || {{ echo "index missing for $outbcf" >&2; exit 1; }}
 
               map_url="https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/genetic_maps.b38/chr${{chr1}}.b38.gmap.gz"
-              aria2c $aria2_opts -o "$outdir/$outmap" map_url
+              aria2c $aria2_opts -o "$outdir/$outmap" $map_url
             done
             """
 
