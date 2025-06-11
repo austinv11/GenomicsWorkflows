@@ -83,9 +83,9 @@ if config['aligner'] == 'bwa-mem2':
             r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
             r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
         output:
-            alignment=temp(config['results_dir'] / "alignment" / "{{sample}}.sam")
+            alignment=temp(config['results_dir'] / "alignment" / "{sample}.sam")
         log:
-            config['results_dir'] / "logs" / "alignment.log",
+            config['results_dir'] / "logs" / "{sample}.alignment.log",
         threads: 16
         shell:
             """
@@ -101,9 +101,9 @@ elif config['aligner'] == 'bowtie2':
             r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
             r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
         output:
-            alignment=temp(config['results_dir'] / "alignment" / "{{sample}}.sam")
+            alignment=temp(config['results_dir'] / "alignment" / "{sample}.sam")
         log:
-            config['results_dir'] / "logs" / "alignment.log",
+            config['results_dir'] / "logs" / "{sample}.alignment.log",
         threads: 16
         shell:
             """
@@ -119,9 +119,9 @@ elif config['aligner'] == 'minimap2':
             r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
             r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
         output:
-            alignment=temp(config['results_dir'] / "alignment" / "{{sample}}.sam")
+            alignment=temp(config['results_dir'] / "alignment" / "{sample}.sam")
         log:
-            config['results_dir'] / "logs" / "alignment.log",
+            config['results_dir'] / "logs" / "{sample}.alignment.log",
         params:
             mode="sr"  # Short read mode, can instead be replaced with map-pb, map-ont, map-iclr, splice, splice:hq, splice:sr
         threads: 16
@@ -137,19 +137,19 @@ rule convert_to_bam:
     container: f"{config['workflow_dir']}/docker/samtools/samtools.sif"
     shadow: 'copy-minimal'  # Required when using .sif
     input:
-        sam=config['results_dir'] / "alignment" / "{{sample}}.sam"
+        sam=config['results_dir'] / "alignment" / "{sample}.sam"
     output:
-        bam=config['results_dir'] / "alignment" / "{{sample}}.sorted.bam",
-        bam_index=temp(config['results_dir'] / "alignment" / "{{sample}}.sorted.bai"),
-        stats=config['results_dir'] / "QC" / "{{sample}}.stats.txt",
-        flagstats=config['results_dir'] / "QC" / "{{sample}}.flagstats.txt",
-        idxstats=config['results_dir'] / "QC" / "{{sample}}.idxstats.txt",
-        coverage=config['results_dir'] / "QC" / "{{sample}}.coverage.txt",
-        duplicates=config['results_dir'] / "QC" / "{{sample}}.duplicates.txt",
-        deduped_bam=config['results_dir'] / "alignment" / "{{sample}}.deduped.bam",
-        deduped_bam_index=temp(config['results_dir'] / "alignment" / "{{sample}}.deduped.bai")
+        bam=config['results_dir'] / "alignment" / "{sample}.sorted.bam",
+        bam_index=temp(config['results_dir'] / "alignment" / "{sample}.sorted.bai"),
+        stats=config['results_dir'] / "QC" / "{sample}.stats.txt",
+        flagstats=config['results_dir'] / "QC" / "{sample}.flagstats.txt",
+        idxstats=config['results_dir'] / "QC" / "{sample}.idxstats.txt",
+        coverage=config['results_dir'] / "QC" / "{sample}.coverage.txt",
+        duplicates=config['results_dir'] / "QC" / "{sample}.duplicates.txt",
+        deduped_bam=config['results_dir'] / "alignment" / "{sample}.deduped.bam",
+        deduped_bam_index=temp(config['results_dir'] / "alignment" / "{sample}.deduped.bai")
     log:
-        config['results_dir'] / "logs" / "convert_to_bam.log",
+        config['results_dir'] / "logs" / "{sample}.convert_to_bam.log",
     threads: 4
     shell:
         """
@@ -170,8 +170,8 @@ if config['variant_caller'] == 'gatk-mutect':
         container: f"{config['workflow_dir']}/docker/gatk/gatk.sif"
         shadow: 'copy-minimal'  # Required when using .sif
         input:
-            reference_assembly=...,
-            bam_files=expand(config['results_dir'] / "alignment" / "{{sample}}.deduped.bam", sample=get_samples()),
+            reference_assembly=config['results_dir'] / "reference" / "assembly.fasta",
+            bam_files=expand(config['results_dir'] / "alignment" / "{sample}.deduped.bam", sample=get_samples()),
         output:
             vcf_file=config['results_dir'] / "variants" / "total.vcf.gz",
             raw_vcf_file=temp(config['results_dir'] / "variants" / "raw.vcf.gz"),
@@ -179,7 +179,7 @@ if config['variant_caller'] == 'gatk-mutect':
             f1r2_tar=temp(config['results_dir'] / "variants" / "f1r2.tar.gz"),
             orientation_model=temp(config['results_dir'] / "variants" / "orientation_model.tar.gz"),
         params:
-            bam_args=" ".join(f"-I {bam}" for bam in expand(config['results_dir'] / "alignment" / "{{sample}}.deduped.bam", sample=get_samples())),
+            bam_args=" ".join(f"-I {bam}" for bam in expand(config['results_dir'] / "alignment" / "{sample}.deduped.bam", sample=get_samples())),
         resources:
             mem_mb=16000  # Adjust based on your system's memory
         shell:
@@ -203,19 +203,19 @@ elif config['variant_caller'] == 'glimpse2':
         shadow: 'copy-minimal'  # Required when using .sif
         output:
             vcf=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.vcf.gz", chr=list(range(1, 23)) + ['X'])
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.vcf.gz", chr=list(range(1, 23)) + ['X'])
             ),
             vcf_index=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.vcf.gz.tbi", chr=list(range(1, 23)) + ['X'])
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.vcf.gz.tbi", chr=list(range(1, 23)) + ['X'])
             ),
             bcf=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.bcf", chr=list(range(1, 23)) + ['X'])
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf", chr=list(range(1, 23)) + ['X'])
             ),
             bcf_index=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.bcf.csi", chr=list(range(1, 23)) + ['X'])
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi", chr=list(range(1, 23)) + ['X'])
             ),
             maps=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{{chr}}.genetic_map.txt", chr=list(range(1, 23)) + ['X'])
+                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt", chr=list(range(1, 23)) + ['X'])
             ),
         threads: 4
         shell:
@@ -254,7 +254,7 @@ elif config['variant_caller'] == 'glimpse2':
         shell:
             """
             # Chunk
-            GLIMPSE2_chunk --input {input.vcf} \
+            GLIMPSE2_chunk --input {input.bcf} \
                 --sequential \
                 --threads {threads} \
                 --region chr{wildcards.chr} \
