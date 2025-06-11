@@ -12,6 +12,7 @@ RUN apt-get update && \
         gcc \
         g++ \
         make \
+        libmodule-build-perl \
         build-essential \
         libdbd-mysql-perl \
         libmariadb-dev \
@@ -23,13 +24,17 @@ RUN apt-get update && \
         gzip \
         tar \
         libhts-dev \
-        libcurl4-openssl-dev \
+        libcurl4-gnutls-dev \
+        libwww-perl \  # provides LWP::Simple
+        liblwp-protocol-https-perl \  # HTTPS support for LWP
+        libbio-perl-perl \  # Bio::Root::Version and friends \
+        cpanminus \
         libssl-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Perl libraries: Archive::Zip and DBI
-RUN cpanm Archive::Zip DBI Archive::Extract
+RUN cpanm Archive::Zip DBI Archive::Extract Module::Build List::MoreUtils List::MoreUtils::XS
 
 # Install extra dependencies
 RUN cpanm --notest Set::IntervalTree JSON PerlIO::gzip
