@@ -90,7 +90,7 @@ if config['aligner'] == 'bwa-mem2':
         shell:
             """
             bwa-mem2 index {input.assembly}
-            bwa-mem2 mem -t {threads} {input.r1} {input.r2} > {output.alignment} 2> {log}
+            bwa-mem2 mem -t {threads} {input.assembly} {input.r1} {input.r2} > {output.alignment} 2> {log}
             """
 elif config['aligner'] == 'bowtie2':
     rule bowtie2_align:
