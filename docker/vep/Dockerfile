@@ -4,15 +4,15 @@ LABEL authors="austinv11"
 
 # Install Aria2, gcc, g++, make
 RUN apt-get update && \
-    apt-get install -y aria2 gcc g++ make build-essential libdbd-mysql-perl libmariadb-dev default-libmysqlclient-dev libexpat1-dev libdb-dev zlib1g-dev && \
+    apt-get install -y aria2 gcc g++ make build-essential libdbd-mysql-perl libmariadb-dev default-libmysqlclient-dev libexpat1-dev libdb-dev zlib1g-dev unzip gzip tar && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Perl libraries: Archive::Zip and DBI
-RUN cpanm Archive::Zip DBI
+RUN cpanm Archive::Zip DBI Archive::Extract
 
 # Install extra dependencies
-RUN cpanm --notest DBD::mysql Set::IntervalTree JSON PerlIO::gzip
+RUN cpanm --notest Set::IntervalTree JSON PerlIO::gzip
 
 ENV VEP_VERSION="114.1"
 
