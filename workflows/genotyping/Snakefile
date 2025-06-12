@@ -240,7 +240,7 @@ elif config['variant_caller'] == 'glimpse2':
             vcf_index=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.vcf.gz.tbi"),
             bcf=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf"),
             bcf_index=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi"),
-            maps=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt"),
+            maps=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.gz"),
         params:
             results_dir=config['results_dir'],
         threads: 8
@@ -292,7 +292,7 @@ elif config['variant_caller'] == 'glimpse2':
         input:
             bcf=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf",
             bcf_index=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi",
-            map=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt",
+            map=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.gz",
         output:
             chunks=temp(config['results_dir'] / "glimpse2_chunks" / "chunks.{chr}.txt")
         threads: 4,
@@ -313,7 +313,7 @@ elif config['variant_caller'] == 'glimpse2':
         input:
             bcf=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf",
             bcf_index=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi",
-            map=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt",
+            map=config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.gz",
             chunks=config['results_dir'] / "glimpse2_chunks" / "chunks.{chr}.txt",
         output:
             split_out=temp(directory(config['results_dir'] / "glimpse2_split" / "chr{chr}_split"))
