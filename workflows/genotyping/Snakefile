@@ -236,21 +236,11 @@ elif config['variant_caller'] == 'glimpse2':
         container: f"{config['workflow_dir']}/docker/samtools/samtools.sif"
         shadow: 'copy-minimal'  # Required when using .sif
         output:
-            vcf=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.vcf.gz", chr=list(range(1, 23)) + ['X'])
-            ),
-            vcf_index=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.vcf.gz.tbi", chr=list(range(1, 23)) + ['X'])
-            ),
-            bcf=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf", chr=list(range(1, 23)) + ['X'])
-            ),
-            bcf_index=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi", chr=list(range(1, 23)) + ['X'])
-            ),
-            maps=temp(
-                expand(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt", chr=list(range(1, 23)) + ['X'])
-            ),
+            vcf=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.vcf.gz"),
+            vcf_index=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.vcf.gz.tbi"),
+            bcf=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf"),
+            bcf_index=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi"),
+            maps=temp(config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.genetic_map.txt"),
         params:
             results_dir=config['results_dir'],
         threads: 8
@@ -258,38 +248,43 @@ elif config['variant_caller'] == 'glimpse2':
             """
             set -euo pipefail
             mkdir -p {params.results_dir}/glimpse2_references
-            CHRS="$(seq 1 22) X"
-            BASE="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20201028_3202_phased/CCDG_14151_B01_GRM_WGS_2020-08-05_chr"
-            aria2_opts="-x16 -s16 -k1M --max-tries=10 --retry-wait=10 --continue=true --check-integrity=true -d {params.results_dir}/glimpse2_references"
-            
-            for chr1 in $CHRS; do
-              outdir="{params.results_dir}/glimpse2_references"
-            
-              outvcf="1000genomes.${{chr1}}.vcf.gz"
-              outtbi="${{outvcf}}.tbi"
-              outbcf="1000genomes.${{chr1}}.bcf"
-              outcsi="${{outbcf}}.csi"
-              outmap="1000genomes.${{chr1}}.genetic_map.txt"
-            
-              # chrX has a different base URL
-              if [[ "$chr1" == "X" ]]; then
-                url="${{BASE}}${{chr1}}.filtered.eagle2-phased.v2.vcf.gz"
-               else
-                url="${{BASE}}${{chr1}}.filtered.shapeit2-duohmm-phased.vcf.gz"
-              fi
-            
-              aria2c $aria2_opts -o "$outvcf" "$url"
-              aria2c $aria2_opts -o "$outtbi" "$url.tbi"
-            
-              bcftools norm -m -any "$outdir/$outvcf" --threads {threads} -Ou | \
-                bcftools view -G -Ob --threads {threads} -o "$outdir/$outbcf" --write-index
-            
-              [ -s "$outdir/$outcsi" ] || {{ echo "index missing for $outbcf" >&2; exit 1; }}
+            chr1="{wildcards.chr}"
 
-              map_url="https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/genetic_maps.b38/chr${{chr1}}.b38.gmap.gz"
-              aria2c $aria2_opts -o "$outdir/$outmap" $map_url
-            done
+            BASE="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20201028_3202_phased/CCDG_14151_B01_GRM_WGS_2020-08-05_chr"
+            aria2_opts="-x16 -s16 -k1M --max-tries=10 --retry-wait=10 --continue=true \
+                        --check-integrity=true -d {params.results_dir}/glimpse2_references"
+
+            outvcf="1000genomes.${{chr1}}.vcf.gz"
+            outtbi="${{outvcf}}.tbi"
+            outbcf="1000genomes.${{chr1}}.bcf"
+            outcsi="${{outbcf}}.csi"
+            outmap="1000genomes.${{chr1}}.genetic_map.txt"
+
+            # chrX has a different base URL
+            if [[ "$chr1" == "X" ]]; then
+                url="${{BASE}}${{chr1}}.filtered.eagle2-phased.v2.vcf.gz"
+            else
+                url="${{BASE}}${{chr1}}.filtered.shapeit2-duohmm-phased.vcf.gz"
+            fi
+
+            aria2c $aria2_opts -o "$outvcf" "$url"
+            aria2c $aria2_opts -o "$outtbi" "$url.tbi"
+
+            bcftools norm -m -any "$outvcf" --threads {threads} -Ou | \
+                bcftools view -G -Ob --threads {threads} -o "$outbcf" --write-index
+
+            [ -s "$outcsi" ] || {{ echo "index missing for $outbcf" >&2; exit 1; }}
+
+            map_url="https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/genetic_maps.b38/chr${{chr1}}.b38.gmap.gz"
+            aria2c $aria2_opts -o "$outmap" "$map_url"
             """
+
+    rule collect_references:
+        input:
+            expand(
+                config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi",
+                chr=list(range(1, 23)) + ["X"]
+            )
 
     rule glimpse2_chunk:
         container: f"{config['workflow_dir']}/docker/glimpse2/glimpse2.sif"
