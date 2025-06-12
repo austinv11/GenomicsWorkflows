@@ -75,6 +75,24 @@ rule download_reference:
 
 
 if config['aligner'] == 'bwa-mem2':
+    rule bwa_index:
+        container: f"{config['workflow_dir']}/docker/bwa/bwa.sif"
+        shadow: 'copy-minimal'  # Required when using .sif
+        input:
+            assembly=config['results_dir'] / "reference" / "assembly.fasta",
+        output:
+            index_files=expand(
+                "{assembly}.{ext}",assembly=config['results_dir'] / "reference" / "assembly.fasta",ext=[
+                    "amb", "ann", "bwt", "pac", "sa"
+                ]
+            )
+        log:
+            config['results_dir'] / "logs" / "bwa_index.log"
+        shell:
+            """
+            bwa-mem2 index {input.assembly} > {log} 2>&1
+            """
+
     rule bwa_align:
         container: f"{config['workflow_dir']}/docker/bwa/bwa.sif"
         shadow: 'copy-minimal'  # Required when using .sif
@@ -82,6 +100,7 @@ if config['aligner'] == 'bwa-mem2':
             assembly=config['results_dir'] / "reference" / "assembly.fasta",
             r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
             r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+            bwa_index=config['results_dir'] / "reference" / "assembly.fasta.amb",
         output:
             alignment=temp(config['results_dir'] / "alignment" / "{sample}.sam")
         log:
@@ -89,10 +108,24 @@ if config['aligner'] == 'bwa-mem2':
         threads: 16
         shell:
             """
-            bwa-mem2 index {input.assembly}
             bwa-mem2 mem -t {threads} {input.assembly} {input.r1} {input.r2} > {output.alignment} 2> {log}
             """
+
 elif config['aligner'] == 'bowtie2':
+    rule bowtie2_index:
+        container: f"{config['workflow_dir']}/docker/bowtie2/bowtie2.sif"
+        shadow: 'copy-minimal'  # Required when using .sif
+        input:
+            assembly=config['results_dir'] / "reference" / "assembly.fasta",
+        output:
+            index="{assembly}.*.bt2",  # Bowtie2 index files
+        log:
+            config['results_dir'] / "logs" / "bowtie2_index.log"
+        shell:
+            """
+            bowtie2-build {input.assembly} {output.index} > {log} 2>&1
+            """
+
     rule bowtie2_align:
         container: f"{config['workflow_dir']}/docker/bowtie2/bowtie2.sif"
         shadow: 'copy-minimal'
@@ -100,6 +133,7 @@ elif config['aligner'] == 'bowtie2':
             assembly=config['results_dir'] / "reference" / "assembly.fasta",
             r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
             r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
+            index=config['results_dir'] / "reference" / "assembly.fasta.1.bt2",
         output:
             alignment=temp(config['results_dir'] / "alignment" / "{sample}.sam")
         log:
@@ -107,9 +141,9 @@ elif config['aligner'] == 'bowtie2':
         threads: 16
         shell:
             """
-            bowtie2-build {input.assembly} {input.assembly}.bt2 > {log}
             bowtie2 -x {input.assembly}.bt2 -1 {input.r1} -2 {input.r2} -S {output.alignment} -p {threads} 2>> {log}
             """
+
 elif config['aligner'] == 'minimap2':
     rule minimap2_align:
         container: f"{config['workflow_dir']}/docker/minimap2/minimap2.sif"
