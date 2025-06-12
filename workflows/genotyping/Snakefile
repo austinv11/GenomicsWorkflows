@@ -273,7 +273,7 @@ elif config['variant_caller'] == 'glimpse2':
             bcftools norm -m -any "{params.results_dir}/glimpse2_references/$outvcf" --threads {threads} -Ou | \
                 bcftools view -G -Ob --threads {threads} -o "{params.results_dir}/glimpse2_references/$outbcf" --write-index
 
-            [ -s "$outcsi" ] || {{ echo "index missing for $outbcf" >&2; exit 1; }}
+            [ -s "{params.results_dir}/glimpse2_references/$outcsi" ] || {{ echo "index missing for {params.results_dir}/glimpse2_references/$outbcf" >&2; exit 1; }}
 
             map_url="https://raw.githubusercontent.com/odelaneau/GLIMPSE/master/maps/genetic_maps.b38/chr${{chr1}}.b38.gmap.gz"
             aria2c $aria2_opts -o "$outmap" "$map_url"
