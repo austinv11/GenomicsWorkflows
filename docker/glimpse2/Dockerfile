@@ -5,7 +5,7 @@ LABEL authors="austinv11"
 # Requires HTSlib >= 1.7 and BOOST >= 1.65
 RUN apt-get update && \
     apt-get install -y \
-        build-essential libbz2-dev libcurl4-openssl-dev autoconf libssl-dev wget zlib1g-dev liblzma-dev libdeflate-dev && \
+        build-essential libbz2-dev unzip libcurl4-openssl-dev autoconf libssl-dev wget zlib1g-dev liblzma-dev libdeflate-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
