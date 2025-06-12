@@ -258,7 +258,7 @@ elif config['variant_caller'] == 'glimpse2':
             outtbi="${{outvcf}}.tbi"
             outbcf="1000genomes.${{chr1}}.bcf"
             outcsi="${{outbcf}}.csi"
-            outmap="1000genomes.${{chr1}}.genetic_map.txt"
+            outmap="1000genomes.${{chr1}}.genetic_map.gz"
 
             # chrX has a different base URL
             if [[ "$chr1" == "X" ]]; then
