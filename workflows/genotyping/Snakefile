@@ -270,8 +270,8 @@ elif config['variant_caller'] == 'glimpse2':
             aria2c $aria2_opts -o "$outvcf" "$url"
             aria2c $aria2_opts -o "$outtbi" "$url.tbi"
 
-            bcftools norm -m -any "$outvcf" --threads {threads} -Ou | \
-                bcftools view -G -Ob --threads {threads} -o "$outbcf" --write-index
+            bcftools norm -m -any "{params.results_dir}/glimpse2_references/$outvcf" --threads {threads} -Ou | \
+                bcftools view -G -Ob --threads {threads} -o "{params.results_dir}/glimpse2_references/$outbcf" --write-index
 
             [ -s "$outcsi" ] || {{ echo "index missing for $outbcf" >&2; exit 1; }}
 
