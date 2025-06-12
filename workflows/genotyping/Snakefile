@@ -271,7 +271,12 @@ elif config['variant_caller'] == 'glimpse2':
               outcsi="${{outbcf}}.csi"
               outmap="1000genomes.${{chr1}}.genetic_map.txt"
             
-              url="${{BASE}}${{chr1}}.filtered.shapeit2-duohmm-phased.vcf.gz"
+              # chrX has a different base URL
+              if [[ "$chr1" == "X" ]]; then
+                url="${{BASE}}${{chr1}}.filtered.eagle2-phased.v2.vcf.gz"
+               else
+                url="${{BASE}}${{chr1}}.filtered.shapeit2-duohmm-phased.vcf.gz"
+              fi
             
               aria2c $aria2_opts -o "$outvcf" "$url"
               aria2c $aria2_opts -o "$outtbi" "$url.tbi"
