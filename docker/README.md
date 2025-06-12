@@ -14,3 +14,4 @@ To build all these images, run `deploy.sh` script.
 - `minimap2`: Contains minimap2 for alignment of sequencing reads.
 - `gatk`: Contains GATK for variant calling and other genomic analyses.
 - `vep`: Contains VEP for annotating variants.
+- `glipse`: Contains GLIMPSE2 for low-coverage variant calling.

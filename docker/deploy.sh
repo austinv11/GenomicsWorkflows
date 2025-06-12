@@ -31,6 +31,7 @@ build_docker_image "bwa"
 build_docker_image "minimap2"
 build_docker_image "gatk"
 build_docker_image "vep"
+build_docker_image "glimpse2"
 
 # Generate conda environments on-the-fly using conda-lock
 generate_conda_docker_images() {
