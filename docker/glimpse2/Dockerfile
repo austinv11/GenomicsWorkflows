@@ -35,8 +35,6 @@ ADD https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz
 RUN tar -xf htslib-1.16.tar.bz2 && \
     rm htslib-1.16.tar.bz2 && \
     cd htslib-1.16 && \
-    autoheader && \
-    autoconf && \
     ./configure --enable-libcurl && \
     make install && \
     cd .. && \
