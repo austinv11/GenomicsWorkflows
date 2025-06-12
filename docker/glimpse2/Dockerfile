@@ -42,8 +42,9 @@ RUN tar -xf htslib-1.16.tar.bz2 && \
 
 ADD $GLIMPSE2_URL /build/
 
-RUN unzip GLIMPSE*.zip && \
-    rm GLIMPSE*.zip && \
+RUN mv $GLIMPSE2_VERSION.zip GLIMPSE.zip && \
+    unzip GLIMPSE.zip && \
+    rm GLIMPSE.zip && \
     mv GLIMPSE* GLIMPSE
 
 WORKDIR /build/GLIMPSE
