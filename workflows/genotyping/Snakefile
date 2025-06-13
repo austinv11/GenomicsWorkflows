@@ -380,8 +380,8 @@ elif config['variant_caller'] == 'glimpse2':
         input:
             phased_bcf=expand(config['results_dir'] / "variants" / "{sample}.chr{chr}.phased.bcf", sample=get_samples(), chr=list(range(1, 23))),# + ['X']),  # Skip chrX for now
         output:
-            merged_bcf=temp(config['results_dir'] / "variants" / "{sample}.phased.bcf"),
-            merged_bcf_index=temp(config['results_dir'] / "variants" / "{sample}.phased.bcf.csi"),
+            merged_bcf=temp(config['results_dir'] / "variants" / "{sample}.phased.merged.bcf"),
+            merged_bcf_index=temp(config['results_dir'] / "variants" / "{sample}.phased.merged.bcf.csi"),
         threads: 4,
         shell:
             """
@@ -393,7 +393,7 @@ elif config['variant_caller'] == 'glimpse2':
         container: f"{config['workflow_dir']}/docker/samtools/samtools.sif"
         shadow: 'copy-minimal'
         input:
-            phased_bcf=expand(config['results_dir'] / "variants" / "{sample}.phased.bcf", sample=get_samples()),
+            phased_bcf=expand(config['results_dir'] / "variants" / "{sample}.phased.merged.bcf", sample=get_samples()),
         output:
             merged_bcf=temp(config['results_dir'] / "variants" / "total.phased.bcf"),
             merged_bcf_index=temp(config['results_dir'] / "variants" / "total.phased.bcf.csi"),
