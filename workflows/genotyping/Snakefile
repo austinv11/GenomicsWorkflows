@@ -102,7 +102,7 @@ if config['aligner'] == 'bwa-mem2':
             r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
             bwa_index=expand(
                 "{assembly}.{ext}",assembly=config['results_dir'] / "reference" / "assembly.fasta",ext=[
-                    "0123", "2bit.64"
+                    "0123", "bwt.2bit.64"
                 ]
             )
         output:
