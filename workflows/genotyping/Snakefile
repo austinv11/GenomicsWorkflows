@@ -83,7 +83,7 @@ if config['aligner'] == 'bwa-mem2':
         output:
             index_files=expand(
                 "{assembly}.{ext}",assembly=config['results_dir'] / "reference" / "assembly.fasta",ext=[
-                    "amb", "ann", "bwt", "pac", "sa"
+                    "0123", "2bit.64"
                 ]
             )
         log:
