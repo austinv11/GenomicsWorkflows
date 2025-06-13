@@ -100,7 +100,11 @@ if config['aligner'] == 'bwa-mem2':
             assembly=config['results_dir'] / "reference" / "assembly.fasta",
             r1=f"{get_fastp_dir()}/{{sample}}_L001_R1_001.fastq.gz",
             r2=f"{get_fastp_dir()}/{{sample}}_L001_R2_001.fastq.gz",
-            bwa_index=config['results_dir'] / "reference" / "assembly.fasta.amb",
+            bwa_index=expand(
+                "{assembly}.{ext}",assembly=config['results_dir'] / "reference" / "assembly.fasta",ext=[
+                    "0123", "2bit.64"
+                ]
+            )
         output:
             alignment=temp(config['results_dir'] / "alignment" / "{sample}.sam")
         log:
