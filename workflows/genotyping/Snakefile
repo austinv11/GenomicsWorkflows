@@ -283,7 +283,7 @@ elif config['variant_caller'] == 'glimpse2':
         input:
             expand(
                 config['results_dir'] / "glimpse2_references" / "1000genomes.{chr}.bcf.csi",
-                chr=list(range(1, 23)) + ["X"]
+                chr=list(range(1, 23)) #+ ["X"]  Skip chrX for now
             )
 
     rule glimpse2_chunk:
