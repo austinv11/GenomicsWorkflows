@@ -192,9 +192,12 @@ rule convert_to_bam:
     shell:
         """
         BAM={output.bam}
-        samtools sort -@ {threads} -O BAM -o {output.bam}.tmp {input.sam} > {log}
-        samtools fixmate -m {output.bam}.tmp {output.bam}
+        samtools sort -n -@ {threads} -O BAM -o {output.bam}.tmp {input.sam} > {log}
+        samtools fixmate -m {output.bam}.tmp {output.bam}.fixed
         rm -f {output.bam}.tmp
+        # Re sort the BAM file by coordinate
+        samtools sort -@ {threads} -o $BAM {output.bam}.fixed
+        rm -f {output.bam}.fixed
         samtools index -@ {threads} $BAM {output.bam_index}
         samtools stats -@ {threads} $BAM > {output.stats}
         samtools flagstat -@ {threads} $BAM > {output.flagstats}
