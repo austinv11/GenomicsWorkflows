@@ -185,7 +185,7 @@ rule convert_to_bam:
         coverage=config['results_dir'] / "QC" / "{sample}.coverage.txt",
         duplicates=config['results_dir'] / "QC" / "{sample}.duplicates.txt",
         deduped_bam=config['results_dir'] / "alignment" / "{sample}.deduped.bam",
-        deduped_bam_index=temp(config['results_dir'] / "alignment" / "{sample}.deduped.bai"),
+        deduped_bam_index=config['results_dir'] / "alignment" / "{sample}.deduped.bai",
     log:
         config['results_dir'] / "logs" / "{sample}.convert_to_bam.log",
     threads: 4
