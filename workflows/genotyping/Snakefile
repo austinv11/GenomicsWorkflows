@@ -371,8 +371,8 @@ elif config['variant_caller'] == 'glimpse2':
                 REGE=$(echo $IRG | cut -d":" -f 2 | cut -d"-" -f2)
                 
                 GLIMPSE2_phase --bam-file {input.bam} \
-                    --reference {input.split_ref}/1000genomes_chr{wildcards.chr}_$CHR_$REGS_$REGE.bin \
-                    --output {output.phased_bcf}_$CHR_$REGS_$REGE.bcf \
+                    --reference {input.split_ref}/1000genomes_chr{wildcards.chr}_${{CHR}}_${{REGS}}_${{REGE}}.bin \
+                    --output {output.phased_bcf}_${{CHR}}_${{REGS}}_${{REGE}}.bcf \
                     --threads {threads}
             done < {input.chunks}
             
