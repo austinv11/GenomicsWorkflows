@@ -193,12 +193,12 @@ rule convert_to_bam:
         """
         BAM={output.bam}
         samtools sort -@ {threads} -O BAM -o {output.bam} {input.sam} > {log}
-        samtools index -@ {threads} {{BAM}} {output.bam_index}
-        samtools stats -@ {threads} {{BAM}} > {output.stats}
-        samtools flagstat -@ {threads} {{BAM}} > {output.flagstats}
-        samtools idxstats {{BAM}} > {output.idxstats}
-        samtools coverage -@ {threads} {{BAM}} > {output.coverage}
-        samtools markdup -@ {threads} -r {{BAM}} {output.deduped_bam} > {output.duplicates}
+        samtools index -@ {threads} $BAM {output.bam_index}
+        samtools stats -@ {threads} $BAM > {output.stats}
+        samtools flagstat -@ {threads} $BAM > {output.flagstats}
+        samtools idxstats $BAM > {output.idxstats}
+        samtools coverage -@ {threads} $BAM > {output.coverage}
+        samtools markdup -@ {threads} -r $BAM {output.deduped_bam} > {output.duplicates}
         samtools index -@ {threads} {output.deduped_bam} {output.deduped_bam_index}
         """
 
