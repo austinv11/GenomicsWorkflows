@@ -185,20 +185,22 @@ rule convert_to_bam:
         coverage=config['results_dir'] / "QC" / "{sample}.coverage.txt",
         duplicates=config['results_dir'] / "QC" / "{sample}.duplicates.txt",
         deduped_bam=config['results_dir'] / "alignment" / "{sample}.deduped.bam",
-        deduped_bam_index=temp(config['results_dir'] / "alignment" / "{sample}.deduped.bai")
+        deduped_bam_index=temp(config['results_dir'] / "alignment" / "{sample}.deduped.bai"),
     log:
         config['results_dir'] / "logs" / "{sample}.convert_to_bam.log",
     threads: 4
     shell:
         """
         BAM={output.bam}
-        samtools sort -@ {threads} -O BAM -o {output.bam} {input.sam} > {log}
+        samtools sort -@ {threads} -O BAM -o {output.bam}.tmp {input.sam} > {log}
+        samtools fixmate -m $BAM {output.bam}
+        rm -f {output.bam}.tmp
         samtools index -@ {threads} $BAM {output.bam_index}
         samtools stats -@ {threads} $BAM > {output.stats}
         samtools flagstat -@ {threads} $BAM > {output.flagstats}
         samtools idxstats $BAM > {output.idxstats}
-        samtools coverage -@ {threads} $BAM > {output.coverage}
-        samtools markdup -@ {threads} -r $BAM {output.deduped_bam} > {output.duplicates}
+        samtools coverage {threads} $BAM > {output.coverage}
+        samtools markdup -@ {threads} -r {output.bam} {output.deduped_bam} > {output.duplicates}
         samtools index -@ {threads} {output.deduped_bam} {output.deduped_bam_index}
         """
 
