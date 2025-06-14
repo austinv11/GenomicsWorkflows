@@ -192,7 +192,13 @@ rule convert_to_bam:
     shell:
         """
         BAM={output.bam}
-        samtools sort -n -@ {threads} -O BAM -o {output.bam}.tmp {input.sam} > {log}
+        # Ensure that contigs are named chr1, chr2, ..., chrX, chrY
+        samtools view -H {input.sam} > header.sam
+        sed -E 's/^(@SQ\tSN:)([1-9]|1[0-9]|2[0-2]|X|Y|MT)\b/\1chr\2/' header.sam > new_header.sam
+        samtools reheader new_header.sam {input.sam} > {input.sam}.tmp
+        rm -f header.sam new_header.sam
+        samtools sort -n -@ {threads} -O BAM -o {output.bam}.tmp {input.sam}.tmp > {log}
+        rm -f {input.sam}.tmp
         samtools fixmate -m {output.bam}.tmp {output.bam}.fixed
         rm -f {output.bam}.tmp
         # Re sort the BAM file by coordinate
