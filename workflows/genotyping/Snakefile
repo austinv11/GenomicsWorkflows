@@ -193,7 +193,7 @@ rule convert_to_bam:
         """
         BAM={output.bam}
         samtools sort -@ {threads} -O BAM -o {output.bam}.tmp {input.sam} > {log}
-        samtools fixmate -m $BAM {output.bam}
+        samtools fixmate -m {output.bam}.tmp {output.bam}
         rm -f {output.bam}.tmp
         samtools index -@ {threads} $BAM {output.bam_index}
         samtools stats -@ {threads} $BAM > {output.stats}
