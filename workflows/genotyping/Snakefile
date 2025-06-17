@@ -24,11 +24,6 @@ import glob
 import re
 
 
-# Update the all rule to ensure it requests all samples
-rule all:
-    input:
-        f"{config['results_dir']}/variants/total.vcf.gz"
-
 
 def get_samples():
     return sorted({
@@ -36,6 +31,21 @@ def get_samples():
                    for f in glob.glob(f"{config['fastq_dir']}/*_R1_*.f*q*")})
 
 
+
+# Update the all rule to ensure it requests all samples
+rule all:
+    input:
+        f"{config['results_dir']}/variants/total.vcf.gz",
+        # Structural variants per sample
+        expand(
+            f"{config['results_dir']}/variants/{{sample}}.sv.vcf.gz",
+            sample=get_samples()
+        ),
+        # CNV variants per sample
+        expand(
+            f"{config['results_dir']}/variants/{{sample}}.cnv.vcf.gz",
+            sample=get_samples()
+        ),
 def get_merged_dir():
     return os.path.abspath(f"{config['results_dir']}/merged")
 
@@ -227,6 +237,52 @@ rule convert_to_bam:
 
         # Re-index the renamed BAM
         samtools index -@ {threads} {output.deduped_bam} {output.deduped_bam_index}
+        """
+
+rule prepare_delly2_maps:
+    output:
+        output_fai=temp(config['results_dir'] / "delly2" / "Homo_sapiens.GRCh38.dna.primary_assembly.fa.r101.s501.blacklist.gz.fai"),
+        output_gzi=temp(config['results_dir'] / "delly2" / "Homo_sapiens.GRCh38.dna.primary_assembly.fa.r101.s501.blacklist.gz.gzi"),
+        output_gz=temp(config['results_dir'] / "delly2" / "Homo_sapiens.GRCh38.dna.primary_assembly.fa.r101.s501.blacklist.gz")
+    shell:
+        """
+        blacklist_index_url="https://gear-genomics.embl.de/data/delly/Homo_sapiens.GRCh38.dna.primary_assembly.fa.r101.s501.blacklist.gz.fai"
+        gz_index_url="https://gear-genomics.embl.de/data/delly/Homo_sapiens.GRCh38.dna.primary_assembly.fa.r101.s501.blacklist.gz.gzi"
+        blacklist_url="https://gear-genomics.embl.de/data/delly/Homo_sapiens.GRCh38.dna.primary_assembly.fa.r101.s501.blacklist.gz"
+        
+        cd $(dirname $output_gz)
+        
+        curl -O $blacklist_url
+        curl -O $blacklist_index_url
+        curl -O $gz_index_url
+        """
+
+rule structural_variants:
+    container: f"{config['workflow_dir']}/docker/delly2/delly2.sif"
+    shadow: 'copy-minimal'  # Required when using .sif
+    input:
+        bam = config['results_dir'] / "alignment" / "{sample}.deduped.bam",
+        bam_index = config['results_dir'] / "alignment" / "{sample}.deduped.bai",
+        reference_assembly = config['results_dir'] / "reference" / "assembly.fasta",
+        blacklist_map = config['results_dir'] / "delly2" / "Homo_sapiens.GRCh38.dna.primary_assembly.fa.r101.s501.blacklist.gz",
+        blacklist_map_gzi = config['results_dir'] / "delly2" / "Homo_sapiens.GRCh38.dna.primary_assembly.fa.r101.s501.blacklist.gz.gzi",
+        blacklist_map_fai = config['results_dir'] / "delly2" / "Homo_sapiens.GRCh38.dna.primary_assembly.fa.r101.s501.blacklist.gz.fai"
+    output:
+        sv_vcf = config['results_dir'] / "variants" / "{sample}.sv.vcf.gz",
+        cnv_vcf = config['results_dir'] / "variants" / "{sample}.cnv.vcf.gz",
+    threads: 8
+    log:
+        config['results_dir'] / "logs" / "{sample}.structural_variants.log",
+    shell:
+        """
+        no_gz_output="{output.sv_vcf}"
+        no_gz_output="${{no_gz_output%.gz}}"
+        no_gz_cnv_output="{output.cnv_vcf}
+        no_gz_cnv_output="${{no_gz_cnv_output%.gz}}"
+        delly call -g {input.reference_assembly} {input.bam} > $no_gz_output 2> {log}
+        delly cnv -g {input.reference_assembly} -m {input.blacklist_map} -l $no_gz_output {input.bam} > $no_gz_cnv_output 2>> {log}
+        gzip "$no_gz_output"
+        gzip "$no_gz_cnv_output"
         """
 
 # FIXME: This currently only supports unpaired samples (i.e. tumor WGS only).

@@ -15,6 +15,12 @@ fi
 # Delete old sif files
 rm -f $(pwd)/*/*.sif
 
+# Get Delly2
+mkdir -p "$(pwd)/delly2"
+delly2_ver="1.3.3"
+delly2_url="https://github.com/dellytools/delly/releases/download/v${delly2_ver}/delly_v${delly2_ver}.sif"
+wget -q -O "$(pwd)/delly2/delly2.sif" "$delly2_url"
+
 build_docker_image() {
     local image_name="$1"
     $docker_exec build -t "$image_name" "$(pwd)/$image_name/"

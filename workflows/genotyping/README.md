@@ -6,6 +6,7 @@ The pipeline will perform the following steps:
 - Download and index the hg38 reference genome.
 - Alignment with either BWA-MEM, Bowtie2, minimap2.
 - Variant calling with either GATK Mutect2 or GLIMPSE2 (for low-coverage)
+- Structural variant calling with Delly2.
 - Run MultiQC to generate a report of the QC metrics from fastp and alignments.
 
 Final outputs include: A MultiQC report, ...
