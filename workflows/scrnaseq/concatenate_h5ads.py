@@ -5,7 +5,7 @@ adatas = []
 for h5ad_file in snakemake.input.h5ad_files:
     adata = sc.read_h5ad(h5ad_file)
     # Set sample name from category to string
-    adata.obs['sample'] = adata.obs['category'].astype(str)
+    adata.obs['sample'] = adata.obs['sample'].astype(str)
     # adata.obs['sample'] = "_".join(h5ad_file.split("/")[-1].split("_")[:-1])  # Extract sample name from filename
     adatas.append(adata)
 
