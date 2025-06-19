@@ -1,0 +1,11 @@
+# Output directories
+h5ad_file: "combined_processed_adata.h5ad"
+inputs_dir: "results"
+results_dir: "results"
+
+# Reference and mode configuration
+reference_celltypes: "T-cells,B-Cells"  # Typically immune cell types, comma-separated
+celltype_column: "celltype"  # Column name in the h5ad file that contains cell type labels
+
+# Where these workflows are installed
+workflow_dir: "/workdir/aav4003/GenomicsWorkflows"

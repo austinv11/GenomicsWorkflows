@@ -1,0 +1,96 @@
+"""
+Workflows for CNV assignment from single-cell RNA-seq data for several packages:
+- inferCNV
+"""
+
+config.setdefault("workflow_dir", os.path.dirname(os.path.abspath(__file__)))
+config.setdefault("inputs_dir", "inputs")
+config.setdefault("results_dir", "results")
+config.setdefault("h5ad_file", "combined_processed_adata.h5ad")
+config.setdefault("celltype_column", "cell_type")  # Default cell type column
+config.setdefault("reference_celltypes", "")  # Comma-separated list of reference cell types
+
+import os
+
+rule download_reference:
+    container: f"{config['workflow_dir']}/docker/generated/gget-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/gget-environment.yml"
+    output:
+        gtf=temp(config['results_dir'] / "reference" / "assembly.gtf"),
+    log:
+        config['results_dir'] / "logs" / "reference.json",
+    params:
+        release="114"
+    shell:
+        """
+        gget ref -w gtf -o {log} -r {params.release} -d -q human
+        gunzip Homo_sapiens.GRCh38.114.gtf.gz
+        mv Homo_sapiens.GRCh38.114.gtf {output.gtf}
+        rm -f Homo_sapiens.GRCh38.114.gtf.gz
+        """
+
+
+## InferCNV
+rule prepare_infercnv:  # Prepare inferCNV environment
+    input:
+        notebook=f"{config['workflow_dir']}/notebooks/infercnv_assignment.ipynb",
+    output:
+        temp_notebook=temp(
+            f"{os.path.abspath(config['results_dir'])}/notebooks/infercnv_assignment.ipynb"
+        )
+    shell:
+        """
+        mkdir -p $(dirname {output.temp_notebook})
+        cp {input.notebook} {output.temp_notebook}
+        """
+
+rule make_genomic_position_file:
+    input:
+        gtf=config['results_dir'] / "reference" / "assembly.gtf"
+    output:
+        conversion_script=temp(
+            config['results_dir'] / 'gtf_to_position_file.py'
+        ),
+        genomic_positions=config['results_dir'] / 'genomic_positions.txt'
+    shell:
+        """
+        curl -o {output.conversion_script} https://raw.githubusercontent.com/broadinstitute/infercnv/refs/heads/master/scripts/gtf_to_position_file.py
+        python {output.conversion_script} {input.gtf} {output.genomic_positions}
+        """
+
+rule infercnv_assignment:  # inferCNV cell type assignment
+    container: f"{config['workflow_dir']}/docker/generated/infercnv-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/infercnv-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/infercnv_assignment.ipynb",
+        genomic_positions=f"{os.path.abspath(config['results_dir'])}/genomic_positions.txt",
+    output:
+        notebook_out=f"{os.path.abspath(config['results_dir'])}/infercnv_assignment.ipynb",
+        html_out=f"{os.path.abspath(config['results_dir'])}/infercnv_assignment.html",
+        output_dir=directory(
+            f"{os.path.abspath(config['results_dir'])}/infercnv_assignments"
+        )
+    params:
+        reference_celltypes=config["reference_celltypes"],
+        celltype_column=config["celltype_column"],
+    threads: 16
+    log:
+        f"{os.path.abspath(config['results_dir'])}/logs/infercnv_assignment.log"
+    # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+    retries: 5
+    shell:
+        """
+        export SNAKEMAKE_INPUT_FILE={input.input_file}
+        export SNAKEMAKE_OUTPUT_DIRECTORY={output.output_dir}
+        export SNAKEMAKE_REFERENCE_LIST={params.reference_celltypes}
+        export SNAKEMAKE_CELLTYPE_COLUMN={params.celltype_column}
+        export SNAKEMAKE_GENE_ORDER_FILE={input.genomic_positions}
+        export SNAKEMAKE_NUM_THREADS={threads}
+        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+        """

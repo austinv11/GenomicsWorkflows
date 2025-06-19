@@ -12,7 +12,8 @@ snakemake \
   --snakefile GenomicsWorkflows/workflows/celltype_assignment/Snakefile \
   --cores 32 --max-threads 32 \
   --configfile config.yaml \
-  --software-deployment-method apptainer   # or --software-deployment-method conda
+  --software-deployment-method apptainer \  # or --software-deployment-method conda
+  insert_{method}_assignments
 ```
 
 View an example config file [here](config.yaml).
