@@ -10,7 +10,14 @@ config.setdefault("h5ad_file", "combined_processed_adata.h5ad")
 config.setdefault("celltype_column", "cell_type")  # Default cell type column
 config.setdefault("reference_celltypes", "")  # Comma-separated list of reference cell types
 
+
 import os
+from pathlib import Path
+# Convert paths to a pathlib.Path object
+
+config['workflow_dir'] = Path(config['workflow_dir']).resolve()
+config['inputs_dir'] = Path(config['inputs_dir']).resolve()
+config['results_dir'] = Path(config['results_dir']).resolve()
 
 rule download_reference:
     container: f"{config['workflow_dir']}/docker/generated/gget-environment.sif"
