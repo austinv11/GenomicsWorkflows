@@ -78,6 +78,7 @@ rule infercnv_assignment:  # inferCNV cell type assignment
     params:
         reference_celltypes=config["reference_celltypes"],
         celltype_column=config["celltype_column"],
+        sample_column="sample",
     threads: 16
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/infercnv_assignment.log"
@@ -90,6 +91,7 @@ rule infercnv_assignment:  # inferCNV cell type assignment
         export SNAKEMAKE_REFERENCE_LIST={params.reference_celltypes}
         export SNAKEMAKE_CELLTYPE_COLUMN={params.celltype_column}
         export SNAKEMAKE_GENE_ORDER_FILE={input.genomic_positions}
+        export SNAKEMAKE_SAMPLE_COLUMN={params.sample_column}
         export SNAKEMAKE_NUM_THREADS={threads}
         papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
         jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
