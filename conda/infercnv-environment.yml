@@ -6,11 +6,7 @@ dependencies:
   - r-base~=4.4
   - r-irkernel
   - bioconductor-zellkonverter~=1.16.0
-  - bioconductor-biocparallel
-  - bioconductor-singler~=2.8.0
-  - bioconductor-celldex~=1.16.0
-  - bioconductor-scuttle~=1.16.0
-  - bioconductor-scran~=1.34.0
+  - bioconductor-infercnv~=1.22.0
   - notebook
   - jupyter
   - papermill

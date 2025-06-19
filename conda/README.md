@@ -9,3 +9,5 @@ These environments are also used to dynamically generate additional docker image
 - `scvi`: Environment for single-cell variational inference.
 - `garnett`: Environment for cell type annotation using Garnett.
 - `gget`: Environment for gget tools for querying databases.
+- `singler`: Environment for cell type assignment using SingleR.
+- `infercnv`: Environment for inferCNV analysis.
