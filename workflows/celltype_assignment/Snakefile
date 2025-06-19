@@ -6,6 +6,16 @@ Workflows for cell type assignment from single-cell RNA-seq data for several pac
 - ProjectTILs
 """
 
+config.setdefault("workflow_dir", os.path.dirname(os.path.abspath(__file__)))
+config.setdefault("inputs_dir", "inputs")
+config.setdefault("results_dir", "results")
+config.setdefault("h5ad_file", "combined_processed_adata.h5ad")
+config.setdefault("marker_file", "celltype_markers.csv")
+config.setdefault("garnett_classifier", "garnett_classifier.RDS")
+config.setdefault("organism", "human")  # Default organism for Garnett
+config.setdefault("celltype_column", "cell_type")  # Default cell type column for Garnett
+config.setdefault("singler_reference", "human")  # Default reference for SingleR
+
 import os
 
 ## CellAssign
