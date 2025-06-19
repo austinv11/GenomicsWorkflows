@@ -217,7 +217,7 @@ rule insert_singleR_assignments:  # Insert SingleR assignments into AnnData
     conda:
         f"{config['workflow_dir']}/conda/scanpy-environment.yml"
     input:
-        input_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata.h5ad",
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
         assignments=f"{os.path.abspath(config['results_dir'])}/singler_assignments.csv"
     output:
         output_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata_with_singler.h5ad"
