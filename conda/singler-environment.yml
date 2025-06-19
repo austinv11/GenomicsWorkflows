@@ -1,0 +1,15 @@
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - r-base~=4.4
+  - r-irkernel
+  - bioconductor-zellkonverter~=1.16.0
+  - bioconductor-biocparallel
+  - bioconductor-singler~=2.8.0
+  - bioconductor-celldex~=1.16.0
+  - bioconductor-scuttle~=1.16.0
+  - notebook
+  - jupyter
+  - papermill

@@ -9,3 +9,4 @@ generate reports and analysis.
 - `cellassign_celltype_assignment.ipynb`: Performs cell type assignment using CellAssign on a h5ad file.
 - `garnett_train_classifier.ipynb`: Trains a Garnett classifier on a h5ad file.
 - `garnett_celltype_assignment.ipynb`: Performs cell type assignment using Garnett on a h5ad file.
+- `singler_celltype_assignment.ipynb`: Performs cell type assignment using SingleR on a h5ad file with a specified reference.

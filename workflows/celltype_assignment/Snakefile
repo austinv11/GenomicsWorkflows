@@ -156,3 +156,59 @@ rule insert_garnett_assignments:
     output:
         output_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata_with_garnett.h5ad"
     script: f"{config['workflow_dir']}/workflows/celltype_assignment/inject_assignments.py"
+
+
+## SingleR
+rule prepare_singleR:  # Prepare SingleR environment
+    input:
+        notebook=f"{config['workflow_dir']}/notebooks/singler_celltype_assignment.ipynb",
+    output:
+        temp_notebook=temp(
+            f"{os.path.abspath(config['results_dir'])}/notebooks/singler_celltype_assignment.ipynb"
+        )
+    shell:
+        """
+        mkdir -p $(dirname {output.temp_notebook})
+        cp {input.notebook} {output.temp_notebook}
+        """
+
+rule singleR_assignment:  # SingleR cell type assignment
+    container: f"{config['workflow_dir']}/docker/generated/singler-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/singler-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/singler_celltype_assignment.ipynb",
+    output:
+        notebook_out=f"{os.path.abspath(config['results_dir'])}/singler_celltype_assignment.ipynb",
+        html_out=f"{os.path.abspath(config['results_dir'])}/singler_celltype_assignment.html",
+        output_file=f"{os.path.abspath(config['results_dir'])}/singler_assignments.csv"
+    params:
+        reference=config["singler_reference"]
+    threads: 16
+    log:
+        f"{os.path.abspath(config['results_dir'])}/logs/combined_preprocessing.log"
+    # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+    retries: 5
+    shell:
+        """
+        export SNAKEMAKE_INPUT_FILE={input.input_file}
+        export SNAKEMAKE_OUTPUT_FILE={output.output_file}
+        export SNAKEMAKE_REFERENCE={params.reference}
+        export SNAKEMAKE_NUM_THREADS={threads}
+        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+        """
+
+rule insert_singleR_assignments:  # Insert SingleR assignments into AnnData
+    container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata.h5ad",
+        assignments=f"{os.path.abspath(config['results_dir'])}/singler_assignments.csv"
+    output:
+        output_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata_with_singler.h5ad"
+    script: f"{config['workflow_dir']}/workflows/celltype_assignment/inject_assignments.py"
