@@ -41,7 +41,7 @@ def h5ad_to_10x(adata,
         raise ValueError(f"Neither {gene_id_key} nor {gene_name_key} found in var DataFrame.")
     elif gene_id_key not in var_df.columns and gene_name_key in var_df.columns:
         # Query to fill in gene_id_key with gene_name_key
-        print(f"Warning: {gene_id_key} not found in var DataFrame. Using {gene_name_key} as gene ID.")
+        print(f"Warning: {gene_id_key} not found in var DataFrame. Using {gene_name_key} to join with gene name.")
         annot = sc.queries.biomart_annotations(
             organism, ["ensembl_gene_id", "external_gene_name"]
         )
@@ -51,7 +51,7 @@ def h5ad_to_10x(adata,
         var_df.rename(columns={"ensembl_gene_id": gene_id_key}, inplace=True)
     elif gene_id_key in var_df.columns and gene_name_key not in var_df.columns:
         # Query to fill in gene_name_key with gene_id_key
-        print(f"Warning: {gene_name_key} not found in var DataFrame. Using {gene_id_key} as gene name.")
+        print(f"Warning: {gene_name_key} not found in var DataFrame. Using {gene_id_key} to join with gene name.")
         annot = sc.queries.biomart_annotations(
             organism, ["ensembl_gene_id", "external_gene_name"]
         )
@@ -90,7 +90,7 @@ def h5ad_to_10x(adata,
     if gb_size > 2:
         # Delete the output file if it exceeds the size limit
         os.remove(output_path)
-        raise ValueError(f"Output file {output_path} is larger than 2 GB. "
+        raise ValueError(f"Output file {output_path} is larger than 2 GB (current size={gb_size} GB). "
                          "Please reduce the number of genes or cells, or use a greater subsampling rate.")
     else:
         print(f"Output file {output_path} created successfully with size {gb_size:.2f} GB.")
@@ -99,7 +99,7 @@ def h5ad_to_10x(adata,
 
 if __name__ == "__main__":
     import argparse
-
+    # Note if var_names has no column name, you can use "index" as reset_index() will automatically create that column in our code
     parser = argparse.ArgumentParser(description="Convert h5ad to 10x Xenium Panel Designer format.")
     parser.add_argument("h5ad_file", type=str, help="Path to the input h5ad file.")
     parser.add_argument("--gene_id_key", type=str, default="gene_id", help="Key for gene IDs.")

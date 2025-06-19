@@ -33,9 +33,11 @@ rule download_reference:
     shell:
         """
         gget ref -w gtf -o {log} -r {params.release} -d -q human
-        gunzip Homo_sapiens.GRCh38.114.gtf.gz
-        mv Homo_sapiens.GRCh38.114.gtf {output.gtf}
-        rm -f Homo_sapiens.GRCh38.114.gtf.gz
+        gunzip Homo_sapiens.GRCh38.{params.release}.gtf.gz
+        # Keep only lines containing 'gene_name' in the GTF file
+        grep 'gene_name' Homo_sapiens.GRCh38.{params.release}.gtf > {output.gtf}
+        rm -f Homo_sapiens.GRCh38.{params.release}.gtf.gz
+        rm -f Homo_sapiens.GRCh38.{params.release}.gtf
         """
 
 
@@ -64,7 +66,10 @@ rule make_genomic_position_file:
     shell:
         """
         curl -o {output.conversion_script} https://raw.githubusercontent.com/broadinstitute/infercnv/refs/heads/master/scripts/gtf_to_position_file.py
-        python {output.conversion_script} {input.gtf} {output.genomic_positions}
+        python {output.conversion_script} --attribute_name gene_name {input.gtf} {output.genomic_positions}.tmp
+        # Remove duplicate gene names (first word)
+        awk '!seen[$1]++' {output.genomic_positions}.tmp > {output.genomic_positions}
+        rm -f {output.genomic_positions}.tmp
         """
 
 rule infercnv_assignment:  # inferCNV cell type assignment
@@ -86,6 +91,7 @@ rule infercnv_assignment:  # inferCNV cell type assignment
         reference_celltypes=config["reference_celltypes"],
         celltype_column=config["celltype_column"],
         sample_column="sample",
+        min_counts_per_cell=100,  # Minimum counts per cell
     threads: 16
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/infercnv_assignment.log"
@@ -99,6 +105,7 @@ rule infercnv_assignment:  # inferCNV cell type assignment
         export SNAKEMAKE_CELLTYPE_COLUMN={params.celltype_column}
         export SNAKEMAKE_GENE_ORDER_FILE={input.genomic_positions}
         export SNAKEMAKE_SAMPLE_COLUMN={params.sample_column}
+        export SNAKEMAKE_MIN_COUNTS_PER_CELL={params.min_counts_per_cell}
         export SNAKEMAKE_NUM_THREADS={threads}
         papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
         jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
