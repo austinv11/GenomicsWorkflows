@@ -1,6 +1,7 @@
 # Based on https://www.10xgenomics.com/analysis-guides/creating-single-cell-references-for-xenium-custom-panel-design-from-seurat-or-anndata
 import pandas as pd  # pandas
 import scanpy as sc  # scanpy
+import pybiomart
 import scipy # scipy
 import scipy.sparse as sparse
 import zipfile
@@ -46,7 +47,7 @@ def h5ad_to_10x(adata,
             organism, ["ensembl_gene_id", "external_gene_name"]
         )
         # Join the var_df with the annotations, ensure that we do not get duplicates and order is preserved
-        var_df = var_df.merge(annot, left_on=gene_name_key, right_on="external_gene_name", how="left")
+        var_df = var_df.merge(annot.drop_duplicates(subset=["external_gene_name"]), left_on=gene_name_key, right_on="external_gene_name", how="left")
         # Rename the columns to match the expected keys
         var_df.rename(columns={"ensembl_gene_id": gene_id_key}, inplace=True)
     elif gene_id_key in var_df.columns and gene_name_key not in var_df.columns:
@@ -71,10 +72,12 @@ def h5ad_to_10x(adata,
     celltypes = adata.obs[[cell_type_key]].reset_index()
     celltypes.columns = ["barcode", "annotation"]
 
+    # Ensure that the X matrix is an integer type sparse matrix
+    adata.X = adata.X.astype(int)
     with tempfile.TemporaryDirectory() as tmp_dir:
         with gzip.open(os.path.join(tmp_dir, "matrix.mtx.gz"), "w") as handle:
             # Write in compressed sparse column matrix format
-            scipy.io.mmwrite(handle, sparse.csc_matrix(adata.X.T))
+            scipy.io.mmwrite(handle, sparse.csc_matrix(adata.X.T), field="integer", precision=0)
 
         genes.to_csv(os.path.join(tmp_dir, "features.tsv.gz"), sep="\t", index=False, header=False, compression="gzip")
         barcodes.to_csv(os.path.join(tmp_dir, "barcodes.tsv.gz"), sep="\t", index=False, header=False, compression="gzip")
