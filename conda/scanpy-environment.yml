@@ -12,3 +12,4 @@ dependencies:
   - seaborn~=0.13
   - kneed~=0.8
   - papermill
+  - openpyxl

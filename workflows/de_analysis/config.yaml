@@ -8,7 +8,7 @@ comparison_obs: "celltype"  # Column in obs group cells by for comparison
 comparison_mode: "group_vs_rest"  # Options: 'pairwise', 'group_vs_rest'
 # List of covariates to include in the model
 covariates:
-  - "n_genes_by_counts"
+  - "sample"
 
 # Where these workflows are installed
 workflow_dir: "/workdir/aav4003/GenomicsWorkflows"
