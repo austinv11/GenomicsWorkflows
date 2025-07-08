@@ -66,8 +66,8 @@ checkpoint comparisons:
             for group1, group2 in itertools.combinations(groups, 2):
                 comparison_name = f"{group1}_VS_{group2}"
                 (output_dir / comparison_name).touch()
-        elif config['comparison_model'].endswith("_vs_group"):
-            ref = config['comparison_model'].replace("_vs_group", "")
+        elif config['comparison_mode'].endswith("_vs_group"):
+            ref = config['comparison_mode'].replace("_vs_group", "")
             for group in groups:
                 if group == ref:
                     continue
