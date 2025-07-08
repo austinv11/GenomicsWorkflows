@@ -59,12 +59,19 @@ checkpoint comparisons:
         if config['comparison_mode'] == 'group_vs_rest':
             for group in groups:
                 # Create a comparison for each group vs rest
-                comparison_name = f"{group}_VS_{'&'.join([g for g in groups if g != group])}"
+                comparison_name = f"{group}_VS_rest"
                 (output_dir / comparison_name).touch()
         elif config['comparison_mode'] == 'pairwise':
             # Create pairwise comparisons
             for group1, group2 in itertools.combinations(groups, 2):
                 comparison_name = f"{group1}_VS_{group2}"
+                (output_dir / comparison_name).touch()
+        elif config['comparison_model'].endswith("_vs_group"):
+            ref = config['comparison_model'].replace("_vs_group", "")
+            for group in groups:
+                if group == ref:
+                    continue
+                comparison_name = f"{ref}_VS_{group}"
                 (output_dir / comparison_name).touch()
         else:
             exit(f"Unknown comparison mode: {config['comparison_mode']}")
