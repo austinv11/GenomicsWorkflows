@@ -106,6 +106,7 @@ rule MAST_de:
         output_file=temp(f"{os.path.abspath(config['results_dir'])}/mast_de/{{reference}}_VS_{{rest}}.csv"),
     params:
         covariate_list='&'.join(config['covariates']),
+        group_obs=config['comparison_obs'],
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/mast_{{reference}}_VS_{{rest}}.log"
     threads: 16
@@ -114,7 +115,7 @@ rule MAST_de:
     shell:
         """
         export SNAKEMAKE_H5AD_INPUT={input.input_file}
-        export SNAKEMAKE_GROUP_OBS={config.comparison_obs}
+        export SNAKEMAKE_GROUP_OBS={params.group_obs}
         export SNAKEMAKE_OUTPUT_FILE={output.output_file}
         export SNAKEMAKE_COMPARISON={wildcards.reference}_VS_{wildcards.rest}
         export SNAKEMAKE_NUM_THREADS={threads}
