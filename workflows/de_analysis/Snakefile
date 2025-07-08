@@ -20,7 +20,7 @@ rule copy_input_file:
     input:
         input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
     output:
-        new_input=temp(f"{os.path.abspath(config['results_dir'])}/temp/input.h5ad")
+        new_input=temp(f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}")
     shell:
         """
         mkdir -p $(dirname {output.new_input})
