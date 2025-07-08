@@ -31,7 +31,7 @@ rule extract_groups:
 
 
 # Now we will define the comparisons using wildcards from the groups extracted above.
-rule comparisons:
+checkpoint comparisons:
     input:
         groups=f"{config['results_dir']}/temp/groups.txt"
     output:
