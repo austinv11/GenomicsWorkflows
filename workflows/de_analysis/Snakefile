@@ -114,12 +114,12 @@ rule MAST_de:
     retries: 5
     shell:
         """
-        export SNAKEMAKE_H5AD_INPUT={input.input_file}
-        export SNAKEMAKE_GROUP_OBS={params.group_obs}
-        export SNAKEMAKE_OUTPUT_FILE={output.output_file}
-        export SNAKEMAKE_COMPARISON={wildcards.reference}_VS_{wildcards.rest}
-        export SNAKEMAKE_NUM_THREADS={threads}
-        export SNAKEMAKE_COVARIATES={params.covariate_list}
+        export SNAKEMAKE_H5AD_INPUT="{input.input_file}"
+        export SNAKEMAKE_GROUP_OBS="{params.group_obs}"
+        export SNAKEMAKE_OUTPUT_FILE="{output.output_file}"
+        export SNAKEMAKE_COMPARISON="{wildcards.reference}_VS_{wildcards.rest}"
+        export SNAKEMAKE_NUM_THREADS="{threads}"
+        export SNAKEMAKE_COVARIATES="{params.covariate_list}"
         papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
         jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
         """
