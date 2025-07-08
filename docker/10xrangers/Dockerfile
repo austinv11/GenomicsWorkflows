@@ -79,9 +79,9 @@ RUN rm -rf /build
 
 COPY wrapper.sh /bin/
 
-RUN cellranger telemetry disable all
+RUN cellranger telemetry disable all \
+    && spaceranger telemetry disable all
     #\
-    #&& spaceranger telemetry disable all \
     #&& xeniumranger telemetry disable all
 
 # Final mounting
