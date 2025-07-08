@@ -11,3 +11,4 @@ These environments are also used to dynamically generate additional docker image
 - `gget`: Environment for gget tools for querying databases.
 - `singler`: Environment for cell type assignment using SingleR.
 - `infercnv`: Environment for inferCNV analysis.
+- `mast`: Environment for MAST differential expression analysis.

@@ -1,0 +1,14 @@
+# Output directories
+h5ad_file: "combined_processed_adata.h5ad"  # This should be the given input
+inputs_dir: "results"
+results_dir: "results"
+
+# Arguments for the DE analysis workflow
+comparison_obs: "celltype"  # Column in obs group cells by for comparison
+comparison_mode: "all_vs_rest"  # Options: 'pairwise', 'group_vs_rest'
+# List of covariates to include in the model
+covariates:
+  - "n_genes_by_counts"
+
+# Where these workflows are installed
+workflow_dir: "/workdir/aav4003/GenomicsWorkflows"

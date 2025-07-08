@@ -1,0 +1,144 @@
+"""
+Workflows for cell type assignment from single-cell RNA-seq data for several packages:
+- CellAssign
+- SingleR
+- Garnett
+- ProjectTILs
+"""
+
+config.setdefault("workflow_dir", os.path.dirname(os.path.abspath(__file__)))
+config.setdefault("inputs_dir", "inputs")
+config.setdefault("results_dir", "results")
+config.setdefault("h5ad_file", "combined_processed_adata.h5ad")
+config.setdefault("comparison_obs", "celltype")
+config.setdefault("comparison_mode", "group_vs_rest")
+config.setdefault("covariates", [])
+
+import os
+
+# First we must extract all the groups, then we will compute the comparisons to run
+rule extract_groups:
+    container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+    output:
+        groups=temp(f"{config['results_dir']}/temp/groups.txt")
+    # Simple Python one-liner
+    script: f"{config['workflow_dir']}/workflows/de_analysis/extract_groups.py"
+
+
+# Now we will define the comparisons using wildcards from the groups extracted above.
+rule comparisons:
+    input:
+        groups=f"{config['results_dir']}/temp/groups.txt"
+    output:
+        comparisons=temp(dir(f"{config['results_dir']}/comparisons"))
+    run:
+        # Read the groups from the file
+        import itertools
+        from pathlib import Path
+        with open(input.groups, 'r') as f:
+            groups = [line.strip() for line in f.readlines()]
+        output_dir = Path(output.comparisons)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if config['comparison_mode'] == 'group_vs_rest':
+            for group in groups:
+                # Create a comparison for each group vs rest
+                comparison_name = f"{group}_VS_{'&'.join([g for g in groups if g != group])}"
+                (output_dir / comparison_name).touch()
+        elif config['comparison_mode'] == 'pairwise':
+            # Create pairwise comparisons
+            for group1, group2 in itertools.combinations(groups, 2):
+                comparison_name = f"{group1}_VS_{group2}"
+                (output_dir / comparison_name).touch()
+        else:
+            exit(f"Unknown comparison mode: {config['comparison_mode']}")
+
+
+rule prepare_mast:  # Prepare MAST environment
+    input:
+        notebook = f"{config['workflow_dir']}/notebooks/mast_de_analysis.ipynb",
+    output:
+        temp_notebook = temp(
+            f"{os.path.abspath(config['results_dir'])}/notebooks/mast_de_analysis.ipynb"
+        )
+    shell:
+        """
+        mkdir -p $(dirname {output.temp_notebook})
+        cp {input.notebook} {output.temp_notebook}
+        """
+
+
+rule MAST_de:
+    container: f"{config['workflow_dir']}/docker/generated/mast-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/mast-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/mast_de_analysis.ipynb",
+        comparison=f"{os.path.abspath(config['results_dir'])}/comparisons/{{reference}}_VS_{{rest}}",
+    output:
+        notebook_out=f"{os.path.abspath(config['results_dir'])}/logs/mast_de_analysis_{{reference}}_VS_{{rest}}.ipynb",
+        html_out=f"{os.path.abspath(config['results_dir'])}/logs/mast_de_analysis_{{reference}}_VS_{{rest}}.html",
+        output_file=temp(f"{os.path.abspath(config['results_dir'])}/mast_de/{{reference}}_VS_{{rest}}.csv"),
+    params:
+        covariate_list='&'.join(config['covariates']),
+    log:
+        f"{os.path.abspath(config['results_dir'])}/logs/mast_{{reference}}_VS_{{rest}}.log"
+    threads: 16
+    # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+    retries: 5
+    shell:
+        """
+        export SNAKEMAKE_H5AD_INPUT={input.input_file}
+        export SNAKEMAKE_GROUP_OBS={config.comparison_obs}
+        export SNAKEMAKE_OUTPUT_FILE={output.output_file}
+        export SNAKEMAKE_COMPARISON={wildcards.reference}_VS_{wildcards.rest}
+        export SNAKEMAKE_NUM_THREADS={threads}
+        export SNAKEMAKE_COVARIATES={params.covariate_list}
+        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+        """
+
+def aggregate_comparisons(wildcards):
+    checkpoint_output = checkpoints.comparisons.get(**wildcards).output[0]
+    globbed = glob_wildcards(os.path.join(checkpoint_output, "{reference}_VS_{rest}"))
+    return expand(
+        f"{os.path.abspath(config['results_dir'])}/mast_de/{{reference}}_VS_{{rest}}.csv",
+        reference=globbed.reference,
+        rest=globbed.rest
+    )
+
+
+# Collect all the MAST DEGs into a single file
+rule compute_MAST_DEGs:
+    input:
+        aggregated_files=aggregate_comparisons
+    output:
+        mast_de_results=f"{os.path.abspath(config['results_dir'])}/mast_de/complete_output.csv"
+    run:
+        import pandas as pd
+        from pathlib import Path
+
+        # Create the output directory if it doesn't exist
+        output_dir = Path(os.path.dirname(output.mast_de_results))
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Read all the aggregated files and concatenate them
+        dfs = []
+        for file in input.aggregated_files:
+            df = pd.read_csv(file)
+            df['comparison'] = file.stem  # Add a column with the comparison name
+            dfs.append(df)
+
+        combined_df = pd.concat(dfs, ignore_index=True)
+        # Split the 'comparison' column into 'reference' and 'rest'
+        combined_df[['reference', 'rest']] = combined_df['comparison'].str.split('_VS_', expand=True)
+        combined_df = combined_df.drop(columns=['comparison'])
+        combined_df['reference'] = combined_df['reference'].str.split('&')
+        combined_df['rest'] = combined_df['rest'].str.split('&')
+        combined_df.to_csv(output.mast_de_results, index=False)

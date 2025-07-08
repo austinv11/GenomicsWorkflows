@@ -8,3 +8,4 @@ for common analyses. The best way to navigate this repository is to view the wor
 - `celltype_assignment`: Workflows for several types of tools for assigning cell types to single-cell RNA-seq data.
 - `genotyping`: Genotyping workflows for WGS.
 - `cnv_calling`: CNV calling workflows for single-cell RNA-seq data.
+- `de_analysis`: Differential expression analysis workflows for single-cell RNA-seq data.
