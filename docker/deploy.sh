@@ -12,6 +12,12 @@ else # biohpc
     docker_user="biohpc_$username"
 fi
 
+singularity_exec=$(command -v apptainer)
+# If not found, fallback to legacy singularity command
+if [ -z "$singularity_exec" ]; then
+    singularity_exec=$(command -v singularity)
+fi
+
 # Delete old sif files
 rm -f $(pwd)/*/*.sif
 
@@ -25,7 +31,7 @@ build_docker_image() {
     local image_name="$1"
     $docker_exec build -t "$image_name" "$(pwd)/$image_name/"
     $docker_exec save "$docker_user/$image_name:latest" > "$(pwd)/$image_name/$image_name.tar"
-    apptainer build "$(pwd)/$image_name/$image_name.sif" "docker-archive://$(pwd)/$image_name/$image_name.tar"
+    $singularity_exec build "$(pwd)/$image_name/$image_name.sif" "docker-archive://$(pwd)/$image_name/$image_name.tar"
     rm -f "$(pwd)/$image_name/$image_name.tar"
 }
 
@@ -75,7 +81,7 @@ generate_conda_docker_images() {
 
     $docker_exec build -t "${env_name}" "$generated_dir/"
     $docker_exec save "$docker_user/${env_name}:latest" > "$generated_dir/${env_name}.tar"
-    apptainer build "$generated_dir/${env_name}.sif" "docker-archive://$generated_dir/${env_name}.tar"
+    $singularity_exec build "$generated_dir/${env_name}.sif" "docker-archive://$generated_dir/${env_name}.tar"
     rm -f "$generated_dir/${env_name}.tar" "$dockerfile" "$lock_file"
   done
 }
