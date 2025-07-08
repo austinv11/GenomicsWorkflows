@@ -16,6 +16,18 @@ config.setdefault("covariates", [])
 
 import os
 
+rule copy_input_file:
+    input:
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+    output:
+        new_input=temp(f"{os.path.abspath(config['results_dir'])}/temp/input.h5ad")
+    shell:
+        """
+        mkdir -p $(dirname {output.new_input})
+        cp {input.input_file} {output.new_input}
+        """
+
+
 # First we must extract all the groups, then we will compute the comparisons to run
 rule extract_groups:
     container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
@@ -23,7 +35,7 @@ rule extract_groups:
     conda:
         f"{config['workflow_dir']}/conda/scanpy-environment.yml"
     input:
-        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        input_file=f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}",
     output:
         groups=temp(f"{config['results_dir']}/temp/groups.txt")
     # Simple Python one-liner
@@ -78,7 +90,7 @@ rule MAST_de:
     conda:
         f"{config['workflow_dir']}/conda/mast-environment.yml"
     input:
-        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        input_file=f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}",
         notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/mast_de_analysis.ipynb",
         comparison=f"{os.path.abspath(config['results_dir'])}/comparisons/{{reference}}_VS_{{rest}}",
     output:
