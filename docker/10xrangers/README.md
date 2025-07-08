@@ -34,5 +34,5 @@ docker run -it --rm \
 
 ## Tool Versions
 - cellranger: `9.0.1`
-- spaceranger: `3.1.3`
+- spaceranger: `4.0.1`
 - xeniumranger: `3.1.1`

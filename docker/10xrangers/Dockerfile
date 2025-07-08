@@ -25,11 +25,11 @@ ENV CELLRANGER_HUMAN_AND_MOUSE_REFERENCE_URL="https://cf.10xgenomics.com/supp/ce
 ENV CELLRANGER_FLEX_HUMAN_PROBE_SET_URL="https://cf.10xgenomics.com/supp/cell-exp/probeset/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv"
 ENV CELLRANGER_FLEX_MOUSE_PROBE_SET_URL="https://cf.10xgenomics.com/supp/cell-exp/probeset/Chromium_Mouse_Transcriptome_Probe_Set_v1.1.1_GRCm39-2024-A.csv"
 ## Spaceranger
-ENV SPACERANGER_DOWNLOAD_VER="3.1.3"
-ENV SPACERANGER_HUMAN_REFERENCE_URL="https://cf.10xgenomics.com/supp/spatial-exp/refdata-gex-GRCh38-2020-A.tar.gz"
-ENV SPACERANGER_MOUSE_REFERENCE_URL="https://cf.10xgenomics.com/supp/spatial-exp/refdata-gex-mm10-2020-A.tar.gz"
-ENV SPACERANGER_HUMAN_PROBE_SET_URL="https://cf.10xgenomics.com/supp/spatial-exp/probeset/Visium_Human_Transcriptome_Probe_Set_v2.0_GRCh38-2020-A.csv"
-ENV SPACERANGER_MOUSE_PROBE_SET_URL="https://cf.10xgenomics.com/supp/spatial-exp/probeset/Visium_Mouse_Transcriptome_Probe_Set_v2.0_mm10-2020-A.csv"
+ENV SPACERANGER_DOWNLOAD_VER="4.0.1"
+ENV SPACERANGER_HUMAN_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2024-A.tar.gz"
+ENV SPACERANGER_MOUSE_REFERENCE_URL="https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCm39-2024-A.tar.gz"
+ENV SPACERANGER_HUMAN_PROBE_SET_URL="https://cf.10xgenomics.com/supp/spatial-exp/probeset/Visium_Human_Transcriptome_Probe_Set_v2.1.0_GRCh38-2024-A.csv"
+ENV SPACERANGER_MOUSE_PROBE_SET_URL="https://cf.10xgenomics.com/supp/spatial-exp/probeset/Visium_Mouse_Transcriptome_Probe_Set_v2.1.0_GRCm39-2024-A.csv"
 ## Xeniumranger
 ENV XENIUMRANGER_DOWNLOAD_VER="3.1.1"
 ENV XENIUMRANGER_DOWNLOAD_VER_TRUNCATED="3.1"
