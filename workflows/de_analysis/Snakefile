@@ -47,7 +47,7 @@ checkpoint comparisons:
     input:
         groups=f"{config['results_dir']}/temp/groups.txt"
     output:
-        comparisons=temp(dir(f"{config['results_dir']}/comparisons"))
+        comparisons=temp(directory(f"{config['results_dir']}/comparisons"))
     run:
         # Read the groups from the file
         import itertools
