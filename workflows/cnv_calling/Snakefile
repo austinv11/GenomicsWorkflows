@@ -9,6 +9,8 @@ config.setdefault("results_dir", "results")
 config.setdefault("h5ad_file", "combined_processed_adata.h5ad")
 config.setdefault("celltype_column", "cell_type")  # Default cell type column
 config.setdefault("reference_celltypes", "")  # Comma-separated list of reference cell types
+config.setdefault("per_sample", "true")
+config.setdefault("sample_column", "sample")  # Default sample column
 
 
 import os
@@ -72,41 +74,120 @@ rule make_genomic_position_file:
         rm -f {output.genomic_positions}.tmp
         """
 
-rule infercnv_assignment:  # inferCNV cell type assignment
-    container: f"{config['workflow_dir']}/docker/generated/infercnv-environment.sif"
-    shadow: "copy-minimal"  # Required when using .sif
-    conda:
-        f"{config['workflow_dir']}/conda/infercnv-environment.yml"
-    input:
-        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
-        notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/infercnv_assignment.ipynb",
-        genomic_positions=f"{os.path.abspath(config['results_dir'])}/genomic_positions.txt",
-    output:
-        notebook_out=f"{os.path.abspath(config['results_dir'])}/infercnv_assignment.ipynb",
-        html_out=f"{os.path.abspath(config['results_dir'])}/infercnv_assignment.html",
-        output_dir=directory(
-            f"{os.path.abspath(config['results_dir'])}/infercnv_assignments"
+if bool(config['per_sample']):
+    checkpoint split_h5ad:  # Split h5ad file by sample
+        container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+        shadow: "copy-minimal"  # Required when using .sif
+        conda:
+            f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+        input:
+            input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        output:
+            h5ad_files=temp(
+                directory(f"{os.path.abspath(config['results_dir'])}/h5ad_files")
+            )
+        script: f"{config['workflow_dir']}/workflows/cnv_calling/split_by_sample.py"
+
+    def ensure_h5ad_split_inputs(wildcards):
+        # Ensure the h5ad file exists for the sample
+        checkpoint_output = checkpoints.split_h5ad.get(**wildcards).output[0]
+        globbed = glob_wildcards(os.path.join(checkpoint_output,"{sample}.h5ad"))
+        return expand(
+            f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad",
+            sample=globbed.sample,
         )
-    params:
-        reference_celltypes=config["reference_celltypes"],
-        celltype_column=config["celltype_column"],
-        sample_column="sample",
-        min_counts_per_cell=100,  # Minimum counts per cell
-    threads: 16
-    log:
-        f"{os.path.abspath(config['results_dir'])}/logs/infercnv_assignment.log"
-    # Papermill can sometimes compete with ports if there are multiple papermill jobs running
-    retries: 5
-    shell:
-        """
-        export SNAKEMAKE_INPUT_FILE={input.input_file}
-        export SNAKEMAKE_OUTPUT_DIRECTORY={output.output_dir}
-        export SNAKEMAKE_REFERENCE_LIST={params.reference_celltypes}
-        export SNAKEMAKE_CELLTYPE_COLUMN={params.celltype_column}
-        export SNAKEMAKE_GENE_ORDER_FILE={input.genomic_positions}
-        export SNAKEMAKE_SAMPLE_COLUMN={params.sample_column}
-        export SNAKEMAKE_MIN_COUNTS_PER_CELL={params.min_counts_per_cell}
-        export SNAKEMAKE_NUM_THREADS={threads}
-        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
-        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
-        """
+
+    rule ensure_h5ad_split:
+        input:
+            h5ads=ensure_h5ad_split_inputs
+        output:
+            temp(touch(f"{os.path.abspath(config['results_dir'])}/h5ad_files/.ready"))
+
+    rule infercnv_assignment:  # inferCNV cell type assignment
+        container: f"{config['workflow_dir']}/docker/generated/infercnv-environment.sif"
+        shadow: "copy-minimal"  # Required when using .sif
+        conda:
+            f"{config['workflow_dir']}/conda/infercnv-environment.yml"
+        input:
+            input_file=f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad",
+            notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/infercnv_assignment.ipynb",
+            genomic_positions=f"{os.path.abspath(config['results_dir'])}/genomic_positions.txt",
+        output:
+            notebook_out=f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.ipynb",
+            html_out=f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.html",
+            output_dir=directory(
+                f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignments_{{sample}}"
+            )
+        params:
+            reference_celltypes=config["reference_celltypes"],
+            celltype_column=config["celltype_column"],
+            sample_column="sample",
+            sample="{sample}",  # Sample name wildcard
+            min_counts_per_cell=100,  # Minimum counts per cell
+        threads: 16
+        log:
+            f"{os.path.abspath(config['results_dir'])}/logs/{{sample}}_infercnv_assignment.log"
+        # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+        retries: 5
+        shell:
+            """
+            export SNAKEMAKE_INPUT_FILE={input.input_file}
+            export SNAKEMAKE_OUTPUT_DIRECTORY={output.output_dir}
+            export SNAKEMAKE_REFERENCE_LIST={params.reference_celltypes}
+            export SNAKEMAKE_CELLTYPE_COLUMN={params.celltype_column}
+            export SNAKEMAKE_GENE_ORDER_FILE={input.genomic_positions}
+            export SNAKEMAKE_SAMPLE_COLUMN={params.sample_column}
+            export SNAKEMAKE_SAMPLE_SELECTED={params.sample}
+            export SNAKEMAKE_MIN_COUNTS_PER_CELL={params.min_counts_per_cell}
+            export SNAKEMAKE_NUM_THREADS={threads}
+            papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+            jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+            """
+
+    rule collect_infercnv_assignments:
+        input:
+            infercnv_assignments=expand(
+                f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignments_{{sample}}/infercnv_assignment_{{sample}}.ipynb",
+                sample=glob_wildcards(
+                    f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad"
+                ).sample
+            )
+else:
+    rule infercnv_assignment:  # inferCNV cell type assignment
+        container: f"{config['workflow_dir']}/docker/generated/infercnv-environment.sif"
+        shadow: "copy-minimal"  # Required when using .sif
+        conda:
+            f"{config['workflow_dir']}/conda/infercnv-environment.yml"
+        input:
+            input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+            notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/infercnv_assignment.ipynb",
+            genomic_positions=f"{os.path.abspath(config['results_dir'])}/genomic_positions.txt",
+        output:
+            notebook_out=f"{os.path.abspath(config['results_dir'])}/infercnv_assignment.ipynb",
+            html_out=f"{os.path.abspath(config['results_dir'])}/infercnv_assignment.html",
+            output_dir=directory(
+                f"{os.path.abspath(config['results_dir'])}/infercnv_assignments"
+            )
+        params:
+            reference_celltypes=config["reference_celltypes"],
+            celltype_column=config["celltype_column"],
+            sample_column="sample",
+            min_counts_per_cell=100,  # Minimum counts per cell
+        threads: 16
+        log:
+            f"{os.path.abspath(config['results_dir'])}/logs/infercnv_assignment.log"
+        # Papermill can sometimes compete with ports if there are multiple papermill jobs running
+        retries: 5
+        shell:
+            """
+            export SNAKEMAKE_INPUT_FILE={input.input_file}
+            export SNAKEMAKE_OUTPUT_DIRECTORY={output.output_dir}
+            export SNAKEMAKE_REFERENCE_LIST={params.reference_celltypes}
+            export SNAKEMAKE_CELLTYPE_COLUMN={params.celltype_column}
+            export SNAKEMAKE_GENE_ORDER_FILE={input.genomic_positions}
+            export SNAKEMAKE_SAMPLE_COLUMN={params.sample_column}
+            export SNAKEMAKE_MIN_COUNTS_PER_CELL={params.min_counts_per_cell}
+            export SNAKEMAKE_NUM_THREADS={threads}
+            papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
+            jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+            """
