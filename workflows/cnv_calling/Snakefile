@@ -131,15 +131,15 @@ if bool(config['per_sample']):
         retries: 5
         shell:
             """
-            export SNAKEMAKE_INPUT_FILE={input.input_file}
-            export SNAKEMAKE_OUTPUT_DIRECTORY={output.output_dir}
-            export SNAKEMAKE_REFERENCE_LIST={params.reference_celltypes}
-            export SNAKEMAKE_CELLTYPE_COLUMN={params.celltype_column}
-            export SNAKEMAKE_GENE_ORDER_FILE={input.genomic_positions}
-            export SNAKEMAKE_SAMPLE_COLUMN={params.sample_column}
-            export SNAKEMAKE_SAMPLE_SELECTED={params.sample}
-            export SNAKEMAKE_MIN_COUNTS_PER_CELL={params.min_counts_per_cell}
-            export SNAKEMAKE_NUM_THREADS={threads}
+            export SNAKEMAKE_INPUT_FILE="{input.input_file}"
+            export SNAKEMAKE_OUTPUT_DIRECTORY="{output.output_dir}"
+            export SNAKEMAKE_REFERENCE_LIST="{params.reference_celltypes}"
+            export SNAKEMAKE_CELLTYPE_COLUMN="{params.celltype_column}"
+            export SNAKEMAKE_GENE_ORDER_FILE="{input.genomic_positions}"
+            export SNAKEMAKE_SAMPLE_COLUMN="{params.sample_column}"
+            export SNAKEMAKE_SAMPLE_SELECTED="{params.sample}"
+            export SNAKEMAKE_MIN_COUNTS_PER_CELL="{params.min_counts_per_cell}"
+            export SNAKEMAKE_NUM_THREADS="{threads}"
             papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
             jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
             """
@@ -180,14 +180,14 @@ else:
         retries: 5
         shell:
             """
-            export SNAKEMAKE_INPUT_FILE={input.input_file}
-            export SNAKEMAKE_OUTPUT_DIRECTORY={output.output_dir}
-            export SNAKEMAKE_REFERENCE_LIST={params.reference_celltypes}
-            export SNAKEMAKE_CELLTYPE_COLUMN={params.celltype_column}
-            export SNAKEMAKE_GENE_ORDER_FILE={input.genomic_positions}
-            export SNAKEMAKE_SAMPLE_COLUMN={params.sample_column}
-            export SNAKEMAKE_MIN_COUNTS_PER_CELL={params.min_counts_per_cell}
-            export SNAKEMAKE_NUM_THREADS={threads}
+            export SNAKEMAKE_INPUT_FILE="{input.input_file}"
+            export SNAKEMAKE_OUTPUT_DIRECTORY="{output.output_dir}"
+            export SNAKEMAKE_REFERENCE_LIST="{params.reference_celltypes}"
+            export SNAKEMAKE_CELLTYPE_COLUMN="{params.celltype_column}"
+            export SNAKEMAKE_GENE_ORDER_FILE="{input.genomic_positions}"
+            export SNAKEMAKE_SAMPLE_COLUMN="{params.sample_column}"
+            export SNAKEMAKE_MIN_COUNTS_PER_CELL="{params.min_counts_per_cell}"
+            export SNAKEMAKE_NUM_THREADS="{threads}"
             papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
             jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
             """
