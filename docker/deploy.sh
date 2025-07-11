@@ -75,6 +75,11 @@ generate_conda_docker_images() {
       # Overwrite domain resolution for Bioconductor packages in the hosts file
       echo "RUN conda run -p /opt/env R -e \"options(BioC_mirror=Sys.getenv('BIOC_MIRROR')); BiocManager::install('plger/scDblFinder', force = TRUE, ask = FALSE, update = FALSE)\"" >> "$dockerfile"
     fi
+    # Check if the conda environment has the zellkonverter package
+    if grep -q "zellkonverter" "$env_file"; then
+      # Add a step to initialize zellkonverter so it doesn't install the first time
+      echo "RUN conda run -p /opt/env R -e \"library(zellkonverter); library(basilisk); cl <- basilisk::basiliskStart(zellkonverterAnnDataEnv()); reticulate::import('anndata'); basilisk::basiliskStop(cl)\"" >> "$dockerfile"
+    fi
     echo "FROM debian:bookworm-slim" >> "$dockerfile"
     echo "COPY --from=builder /opt/env /opt/env" >> "$dockerfile"
     echo "ENV PATH=/opt/env/bin:\$PATH" >> "$dockerfile"
