@@ -87,7 +87,6 @@ if bool(config['per_sample']):
             h5ad_files=temp(
                 directory(f"{os.path.abspath(config['results_dir'])}/h5ad_files")
             ),
-            split_complete=temp(touch(f"{os.path.abspath(config['results_dir'])}/temp/.split_complete"))
         params:
             sample_column=config["sample_column"],
         script: f"{config['workflow_dir']}/workflows/cnv_calling/split_by_sample.py"
