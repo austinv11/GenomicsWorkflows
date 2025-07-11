@@ -151,7 +151,7 @@ if bool(config['per_sample']):
             infercnv_dir=f"{os.path.abspath(config['results_dir'])}/h5ad_files",
             h5ads=ensure_h5ad_split_inputs,
             infercnv_assignments=expand(
-                f"{os.path.abspath(config['results_dir'])}/infercnv//infercnv_assignment_{{sample}}.ipynb",
+                f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.ipynb",
                 sample=glob_wildcards(
                     f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad"
                 ).sample
