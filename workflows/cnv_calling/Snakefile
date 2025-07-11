@@ -158,7 +158,7 @@ if bool(config['per_sample']):
                 ).sample
             ),
             infercnv_ready=f"{os.path.abspath(config['results_dir'])}/temp/.ready",
-            split_complete=temp(touch(f"{os.path.abspath(config['results_dir'])}/temp/.split_complete"))
+            split_complete=f"{os.path.abspath(config['results_dir'])}/temp/.split_complete"
 
 else:
     rule infercnv_assignment:  # inferCNV cell type assignment
