@@ -13,3 +13,8 @@ dependencies:
   - kneed~=0.8
   - papermill
   - openpyxl
+  - pyranges
+  - pyfaidx
+  - ray
+  - pybigwig
+  - bamread

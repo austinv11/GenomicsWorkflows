@@ -11,6 +11,7 @@ config.setdefault("celltype_column", "cell_type")  # Default cell type column
 config.setdefault("reference_celltypes", "")  # Comma-separated list of reference cell types
 config.setdefault("per_sample", "true")
 config.setdefault("sample_column", "sample")  # Default sample column
+config.setdefault("annotated_h5ad_file", "CNV_annotated_processed_adata.h5ad")
 
 
 import os
@@ -104,7 +105,7 @@ if bool(config['per_sample']):
         input:
             h5ads=ensure_h5ad_split_inputs
         output:
-            temp(touch(f"{os.path.abspath(config['results_dir'])}/temp/.ready"))
+            h5ads=f"{os.path.abspath(config['results_dir'])}/temp/.split_complete"
 
     rule per_sample_infercnv_assignment:  # inferCNV cell type assignment
         container: f"{config['workflow_dir']}/docker/generated/infercnv-environment.sif"
@@ -152,12 +153,11 @@ if bool(config['per_sample']):
             infercnv_dir=f"{os.path.abspath(config['results_dir'])}/h5ad_files",
             h5ads=ensure_h5ad_split_inputs,
             infercnv_assignments=expand(
-                f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.ipynb",
+                f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.html",
                 sample=glob_wildcards(
                     f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad"
                 ).sample
             ),
-            infercnv_ready=f"{os.path.abspath(config['results_dir'])}/temp/.ready",
             split_complete=f"{os.path.abspath(config['results_dir'])}/temp/.split_complete"
 
 else:
@@ -199,3 +199,41 @@ else:
             papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
             jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
             """
+
+rule download_cytoband:
+    output:
+        cytoband=temp(
+            config['results_dir'] / "cytoband.bed"
+        )
+    params:
+        url="https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz"
+    shell:
+        """
+        curl -L {params.url} | gunzip > {output.cytoband}
+        """
+
+rule annotate_h5ad:
+    container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+    shadow: "copy-minimal"  # Required when using .sif
+    conda:
+        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+    input:
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
+        cytoband=config['results_dir'] / "cytoband.bed",
+        cell_grouping_files=expand(
+            f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.tsv",
+            sample=glob_wildcards(
+                f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad"
+            ).sample
+        ),
+        gene_cnv_files=expand(
+            f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.gene_cnv.tsv",
+            sample=glob_wildcards(
+                f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad"
+            ).sample
+        ),
+    output:
+        annotated_h5ad=f"{os.path.abspath(config['results_dir'])}/{config['annotated_h5ad_file']}",
+    params:
+        celltype_column=config["celltype_column"],
+    script: f"{config['workflow_dir']}/workflows/cnv_calling/annotate_h5ad.py"

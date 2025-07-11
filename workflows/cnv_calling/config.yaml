@@ -2,6 +2,7 @@
 h5ad_file: "combined_processed_adata.h5ad"
 inputs_dir: "results"
 results_dir: "results"
+annotated_h5ad_file: "CNV_annotated_adata.h5ad"  # Output file for CNV annotations
 
 # Reference and mode configuration
 reference_celltypes: "T-cells,B-Cells"  # Typically immune cell types, comma-separated
