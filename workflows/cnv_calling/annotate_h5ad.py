@@ -70,4 +70,4 @@ for cell_grouping_file, gene_cnv_file in zip(
 
 
 # Save the updated adata object
-adata.write_h5ad(snakemake.output.output_file, compression='gzip')
+adata.write_h5ad(snakemake.output.annotated_h5ad, compression='gzip')
