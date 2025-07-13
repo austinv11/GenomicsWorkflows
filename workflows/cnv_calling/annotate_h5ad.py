@@ -70,4 +70,6 @@ for cell_grouping_file, gene_cnv_file in zip(
 
 
 # Save the updated adata object
+adata.obsm['infercnv'].columns = adata.obsm['infercnv'].columns.astype(str)
+adata.obsm['infercnv'] = adata.obsm['infercnv'].astype(str)
 adata.write_h5ad(snakemake.output.annotated_h5ad, compression='gzip')
