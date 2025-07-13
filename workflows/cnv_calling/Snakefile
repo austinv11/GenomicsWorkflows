@@ -120,7 +120,9 @@ if bool(config['per_sample']):
             html_out=f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.html",
             output_dir=directory(
                 f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignments_{{sample}}"
-            )
+            ),
+            cell_grouping=f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignments_{{sample}}/17_HMM_predHMMi6.leiden.hmm_mode-subclusters.cell_groupings",
+            gene_cnv=f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignments_{{sample}}/HMM_CNV_predictions.HMMi6.leiden.hmm_mode-subclusters.Pnorm_0.5.pred_cnv_regions.dat",
         params:
             reference_celltypes=config["reference_celltypes"],
             celltype_column=config["celltype_column"],
@@ -220,13 +222,13 @@ rule annotate_h5ad:
         input_file=f"{os.path.abspath(config['inputs_dir'])}/{config['h5ad_file']}",
         cytoband=config['results_dir'] / "cytoband.bed",
         cell_grouping_files=expand(
-            f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.tsv",
+            f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignments_{{sample}}/17_HMM_predHMMi6.leiden.hmm_mode-subclusters.cell_groupings",
             sample=glob_wildcards(
                 f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad"
             ).sample
         ),
         gene_cnv_files=expand(
-            f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignment_{{sample}}.gene_cnv.tsv",
+            f"{os.path.abspath(config['results_dir'])}/infercnv/infercnv_assignments_{{sample}}/HMM_CNV_predictions.HMMi6.leiden.hmm_mode-subclusters.Pnorm_0.5.pred_cnv_regions.dat",
             sample=glob_wildcards(
                 f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad"
             ).sample
