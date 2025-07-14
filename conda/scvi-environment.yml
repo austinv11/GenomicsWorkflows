@@ -12,3 +12,4 @@ dependencies:
   - papermill
   - pyro-ppl
   - seaborn
+  - scanpy
