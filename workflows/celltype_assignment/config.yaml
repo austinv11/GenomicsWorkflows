@@ -2,6 +2,7 @@
 h5ad_file: "combined_processed_adata.h5ad"
 inputs_dir: "results"
 results_dir: "results"
+n_gpus: 0
 
 # Reference and mode configuration
 marker_file: "marker_genes.csv"  # Path to marker genes file (format is dependent on method)

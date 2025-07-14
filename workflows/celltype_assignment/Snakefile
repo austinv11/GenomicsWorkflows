@@ -15,6 +15,7 @@ config.setdefault("garnett_classifier", "garnett_classifier.RDS")
 config.setdefault("organism", "human")  # Default organism for Garnett
 config.setdefault("celltype_column", "cell_type")  # Default cell type column for Garnett
 config.setdefault("singler_reference", "human")  # Default reference for SingleR
+config.setdefault("n_gpus", 0)  # Number of GPUs to use, set to 0 for CPU only
 
 import os
 
@@ -46,6 +47,8 @@ rule cellassign_assignment:  # CellAssign cell type assignment
         notebook_out=f"{os.path.abspath(config['results_dir'])}/cellassign_celltype_assignment.ipynb",
         html_out=f"{os.path.abspath(config['results_dir'])}/cellassign_celltype_assignment.html",
         output_file=f"{os.path.abspath(config['results_dir'])}/cellassign_assignments.csv"
+    resources:
+        gpu=config["n_gpus"]  # Use GPUs if available
     log:
         f"{os.path.abspath(config['results_dir'])}/logs/combined_preprocessing.log"
     # Papermill can sometimes compete with ports if there are multiple papermill jobs running
@@ -55,6 +58,7 @@ rule cellassign_assignment:  # CellAssign cell type assignment
         export SNAKEMAKE_MARKER_LIST={input.marker_file}
         export SNAKEMAKE_H5AD_INPUT={input.input_file}
         export SNAKEMAKE_OUTPUT_FILE={output.output_file}
+        export SNAKEMAKE_NUM_GPUS={resources.gpu}
         papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
         jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
         """
