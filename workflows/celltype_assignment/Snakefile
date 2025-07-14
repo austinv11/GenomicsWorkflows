@@ -69,7 +69,7 @@ rule insert_cellassign_assignments:  # Insert CellAssign assignments into AnnDat
     conda:
         f"{config['workflow_dir']}/conda/scanpy-environment.yml"
     input:
-        input_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata.h5ad",
+        input_file=f"{os.path.abspath(config['inputs_dir'])}/combined_processed_adata.h5ad",
         assignments=f"{os.path.abspath(config['results_dir'])}/cellassign_assignments.csv"
     output:
         output_file=f"{os.path.abspath(config['results_dir'])}/combined_processed_adata_with_cellassign.h5ad"
