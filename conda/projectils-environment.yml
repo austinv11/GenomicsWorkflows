@@ -1,0 +1,38 @@
+channels:
+  - conda-forge
+  - bioconda
+  - r
+
+dependencies:
+  - r-base~=4.4
+  - r-irkernel
+  - r-reticulate
+  - scanpy
+  - bioconductor-biocparallel
+  - bioconductor-biocneighbors
+  - bioconductor-ucell
+  - notebook
+  - jupyter
+  - papermill
+  - r-devtools
+  - r-remotes
+  - r-seurat>=5.0.0
+  - r-data.table
+  - r-ggridges
+  - r-pbapply
+  - r-colorspace
+  - r-r.utils
+  - r-ggplot2
+  - r-uwot
+  - r-umap
+  - r-matrix
+  - r-patchwork
+  - r-reshape2
+  - r-scales
+  - r-pracma
+  - r-pheatmap
+  - r-rcolorbrewer
+  - r-dplyr
+  - r-tidyr
+  - r-jsonlite
+  - r-digest

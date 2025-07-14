@@ -12,3 +12,4 @@ These environments are also used to dynamically generate additional docker image
 - `singler`: Environment for cell type assignment using SingleR.
 - `infercnv`: Environment for inferCNV analysis.
 - `mast`: Environment for MAST differential expression analysis.
+- `ProjecTILs`: Environment for ProjecTILs cell type assignment.  Note this requires manual installation of ProjecTILs.

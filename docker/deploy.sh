@@ -75,6 +75,10 @@ generate_conda_docker_images() {
       # Overwrite domain resolution for Bioconductor packages in the hosts file
       echo "RUN conda run -p /opt/env R -e \"options(BioC_mirror=Sys.getenv('BIOC_MIRROR')); BiocManager::install('plger/scDblFinder', force = TRUE, ask = FALSE, update = FALSE)\"" >> "$dockerfile"
     fi
+    if echo "$env_name" | grep -q "projectils"; then
+      # Install the development version of scpred
+      echo "RUN conda run -p /opt/env R -e \"library(remotes); remotes::install_github('carmonalab/scGate', ref='v1.7.0'); remotes::install_github('carmonalab/STACAS', ref='v2.3.0'); remotes::install_github('carmonalab/ProjecTILs')\"" >> "$dockerfile"
+    fi
     # Check if the conda environment has the zellkonverter package
     if grep -q "zellkonverter" "$env_file"; then
       # Add a step to initialize zellkonverter so it doesn't install the first time
