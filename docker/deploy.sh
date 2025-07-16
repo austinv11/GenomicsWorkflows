@@ -65,7 +65,7 @@ generate_conda_docker_images() {
       --filename-template "$lock_file"
 
     echo "FROM continuumio/miniconda3:latest AS builder" > "$dockerfile"
-    echo "COPY ${env_name}.lock /tmp/" >> "$dockerfile"
+    echo "COPY ${env_file}.lock /tmp/" >> "$dockerfile"
     echo "ENV BIOC_MIRROR=https://bioconductor.posit.com" >> "$dockerfile"
     echo "RUN conda create -p /opt/env --copy --file /tmp/${env_name}.lock" >> "$dockerfile"
     # FIXME: Temporary fix for some packages not being updated in conda
