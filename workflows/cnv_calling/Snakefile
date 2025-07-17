@@ -104,7 +104,7 @@ if bool(config['per_sample']):
         input:
             h5ads=ensure_h5ad_split_inputs
         output:
-            h5ads=f"{os.path.abspath(config['results_dir'])}/temp/.split_complete"
+            h5ads=temp(touch(f"{os.path.abspath(config['results_dir'])}/temp/.split_complete"))
 
     rule per_sample_infercnv_assignment:  # inferCNV cell type assignment
         container: f"{config['workflow_dir']}/docker/generated/infercnv-environment.sif"
