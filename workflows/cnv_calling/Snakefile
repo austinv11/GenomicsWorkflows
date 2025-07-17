@@ -233,6 +233,7 @@ rule annotate_h5ad:
                 f"{os.path.abspath(config['results_dir'])}/h5ad_files/{{sample}}.h5ad"
             ).sample
         ),
+        checkpoint=f"{os.path.abspath(config['results_dir'])}/temp/.split_complete"
     output:
         annotated_h5ad=f"{os.path.abspath(config['results_dir'])}/{config['annotated_h5ad_file']}",
     params:
