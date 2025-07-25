@@ -5,7 +5,13 @@ results_dir: "results"
 
 # Arguments for the DE analysis workflow
 comparison_obs: "celltype"  # Column in obs group cells by for comparison
-comparison_mode: "group_vs_rest"  # Options: 'pairwise', 'group_vs_rest', 'REFERENCE_vs_group' where REFERENCE is the name of a group in the comparison_obs column
+comparison_processor: ''  # Optional python script that must accept four snakemake arguments:
+                          # snakemake.input.adata, snakemake.output.output_adata, snakemake.params.comparison_obs column, and snakemake.params.group
+                          # The script can then modify the adata object before DE analysis
+comparison_mode: "group_vs_rest"  # Options: 'pairwise', 'group_vs_rest', 'REFERENCE_vs_group', 'enumerated', 'custom'
+                                  # where REFERENCE is the name of a group in the comparison_obs column
+                                  # 'enumerated' allows for custom pairwise comparisons defined in the input data
+enumerated_list: ""  # File pointing to a list of pairwise comparisons if using 'enumerated' mode
 # List of covariates to include in the model
 covariates:
   - "sample"

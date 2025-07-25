@@ -28,24 +28,28 @@ rule copy_input_file:
         """
 
 
-# First we must extract all the groups, then we will compute the comparisons to run
-rule extract_groups:
-    container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
-    shadow: "copy-minimal"  # Required when using .sif
-    conda:
-        f"{config['workflow_dir']}/conda/scanpy-environment.yml"
-    input:
-        input_file=f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}",
-    output:
-        groups=temp(f"{config['results_dir']}/temp/groups.txt")
-    # Simple Python one-liner
-    script: f"{config['workflow_dir']}/workflows/de_analysis/extract_groups.py"
+if config['comparison_mode'] == 'enumerated':
+    groups_input = os.path.abspath(config['enumerated_list'])
+else:
+    groups_input = f"{config['results_dir']}/temp/groups.txt"
+    # First we must extract all the groups, then we will compute the comparisons to run
+    rule extract_groups:
+        container: f"{config['workflow_dir']}/docker/generated/scanpy-environment.sif"
+        shadow: "copy-minimal"  # Required when using .sif
+        conda:
+            f"{config['workflow_dir']}/conda/scanpy-environment.yml"
+        input:
+            input_file=f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}",
+        output:
+            groups=temp(f"{config['results_dir']}/temp/groups.txt")
+        # Simple Python one-liner
+        script: f"{config['workflow_dir']}/workflows/de_analysis/extract_groups.py"
 
 
 # Now we will define the comparisons using wildcards from the groups extracted above.
 checkpoint comparisons:
     input:
-        groups=f"{config['results_dir']}/temp/groups.txt"
+        groups=groups_input
     output:
         comparisons=temp(directory(f"{config['results_dir']}/comparisons"))
     run:
@@ -73,6 +77,9 @@ checkpoint comparisons:
                     continue
                 comparison_name = f"{ref}_VS_{group}"
                 (output_dir / comparison_name).touch()
+        elif config['comparison_mode'] == 'enumerated':
+            for comparison in groups:
+                (output_dir / comparison).touch()
         else:
             exit(f"Unknown comparison mode: {config['comparison_mode']}")
 
@@ -91,13 +98,26 @@ rule prepare_mast:  # Prepare MAST environment
         """
 
 
+if config['comparison_processor']:
+    rule preprocess_adata_comparison:
+        input:
+            adata=f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}",
+            comparison=f"{os.path.abspath(config['results_dir'])}/comparisons/{{reference}}_VS_{{rest}}",
+        output:
+            output_adata=temp(f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}.{{reference}}_VS_{{rest}}")
+        params:
+            comparison_obs=config['comparison_obs'],
+            comparison="{wildcards.reference}_VS_{wildcards.rest}",
+        script: f"{config['workflow_dir']}/workflows/de_analysis/preprocess_adata_comparison.py"
+
+
 rule MAST_de:
     container: f"{config['workflow_dir']}/docker/generated/mast-environment.sif"
     shadow: "copy-minimal"  # Required when using .sif
     conda:
         f"{config['workflow_dir']}/conda/mast-environment.yml"
     input:
-        input_file=f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}",
+        input_file=f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}.{{reference}}_VS_{{rest}}" if config['comparison_processor'] else f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}",
         notebook=f"{os.path.abspath(config['results_dir'])}/notebooks/mast_de_analysis.ipynb",
         comparison=f"{os.path.abspath(config['results_dir'])}/comparisons/{{reference}}_VS_{{rest}}",
     output:
