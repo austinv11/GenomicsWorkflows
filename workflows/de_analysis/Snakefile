@@ -107,8 +107,8 @@ if config['comparison_processor']:
             output_adata=temp(f"{os.path.abspath(config['results_dir'])}/{config['h5ad_file']}.{{reference}}_VS_{{rest}}")
         params:
             comparison_obs=config['comparison_obs'],
-            comparison="{wildcards.reference}_VS_{wildcards.rest}",
-        script: f"{config['workflow_dir']}/workflows/de_analysis/preprocess_adata_comparison.py"
+            comparison=lambda wildcards: f"{wildcards.reference}_VS_{wildcards.rest}",
+        script: config['comparison_processor']
 
 
 rule MAST_de:
@@ -146,11 +146,10 @@ rule MAST_de:
 
 def aggregate_comparisons(wildcards):
     checkpoint_output = checkpoints.comparisons.get(**wildcards).output[0]
-    globbed = glob_wildcards(os.path.join(checkpoint_output, "{reference}_VS_{rest}"))
+    globbed = glob_wildcards(os.path.join(checkpoint_output, "{comparison}"))
     return expand(
-        f"{os.path.abspath(config['results_dir'])}/mast_de/{{reference}}_VS_{{rest}}.csv",
-        reference=globbed.reference,
-        rest=globbed.rest
+        f"{os.path.abspath(config['results_dir'])}/mast_de/{{comparison}}.csv",
+        comparison=[c for c in globbed.comparison if '_VS_' in c]  # Filter out any non-comparison files
     )
 
 
