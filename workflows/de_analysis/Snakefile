@@ -140,8 +140,8 @@ rule MAST_de:
         export SNAKEMAKE_COMPARISON="{wildcards.reference}_VS_{wildcards.rest}"
         export SNAKEMAKE_NUM_THREADS="{threads}"
         export SNAKEMAKE_COVARIATES="{params.covariate_list}"
-        papermill --stdout-file {log} --stderr-file {log} --no-progress-bar {input.notebook} {output.notebook_out}
-        jupyter nbconvert --to html {output.notebook_out} >> {log} 2>&1
+        papermill --stdout-file "{log}" --stderr-file "{log}" --no-progress-bar "{input.notebook}" "{output.notebook_out}"
+        jupyter nbconvert --to html "{output.notebook_out}" >> "{log}" 2>&1
         """
 
 def aggregate_comparisons(wildcards):
