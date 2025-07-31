@@ -181,4 +181,10 @@ rule compute_MAST_DEGs:
         combined_df = combined_df.drop(columns=['comparison'])
         combined_df['reference'] = combined_df['reference'].str.split('&')
         combined_df['rest'] = combined_df['rest'].str.split('&')
+        # If all reference lists have exactly one element, we can convert them to a string
+        if all(combined_df['reference'].apply(len) == 1):
+            combined_df['reference'] = combined_df['reference'].apply(lambda x: x[0])
+        # If all rest lists have exactly one element, we can convert them to a string
+        if all(combined_df['rest'].apply(len) == 1):
+            combined_df['rest'] = combined_df['rest'].apply(lambda x: x[0])
         combined_df.to_csv(output.mast_de_results, index=False)
