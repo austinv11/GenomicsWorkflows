@@ -15,6 +15,7 @@ config.setdefault("comparison_mode", "group_vs_rest")
 config.setdefault("covariates", [])
 
 import os
+from pathlib import Path
 
 rule copy_input_file:
     input:
@@ -171,7 +172,7 @@ rule compute_MAST_DEGs:
         dfs = []
         for file in input.aggregated_files:
             df = pd.read_csv(file)
-            df['comparison'] = file.stem  # Add a column with the comparison name
+            df['comparison'] = Path(file).stem  # Add a column with the comparison name
             dfs.append(df)
 
         combined_df = pd.concat(dfs, ignore_index=True)
